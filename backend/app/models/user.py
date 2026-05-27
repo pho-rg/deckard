@@ -17,6 +17,12 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     username: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    language: Mapped[str] = mapped_column(
+        String(10), nullable=False, server_default="fr-FR"
+    )
+    region: Mapped[str] = mapped_column(
+        String(10), nullable=False, server_default="FR"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

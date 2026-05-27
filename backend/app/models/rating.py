@@ -1,24 +1,19 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
+if TYPE_CHECKING:
+    from app.models.movie import Movie
+
 
 class Rating(Base):
-    """User rating for a movie.
-
-    Stored as an integer half-star count: 0..10 maps to 0..5 stars in 0.5 steps.
-        0  → 0     stars     6  → 3     stars
-        1  → 0.5   stars     7  → 3.5   stars
-        2  → 1     star      8  → 4     stars
-        3  → 1.5   stars     9  → 4.5   stars
-        4  → 2     stars    10  → 5     stars
-        5  → 2.5   stars
-    """
+    # user rating from 0 to 10 ; odd number as half star for frontend
 
     __tablename__ = "ratings"
     __table_args__ = (
@@ -45,3 +40,5 @@ class Rating(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    movie: Mapped["Movie"] = relationship(lazy="joined")
