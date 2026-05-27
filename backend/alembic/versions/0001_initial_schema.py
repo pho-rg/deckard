@@ -50,7 +50,7 @@ def upgrade() -> None:
 
     op.create_table(
         "movies",
-        sa.Column("tmdb_id", sa.Integer(), nullable=False),
+        sa.Column("tmdb_id", sa.Integer(), autoincrement=False, nullable=False),
         sa.Column("title", sa.String(length=500), nullable=False),
         sa.PrimaryKeyConstraint("tmdb_id"),
     )
