@@ -240,8 +240,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "6977",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "6977"
                 }
               ]
             }
@@ -271,8 +270,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "550",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "550"
                 }
               ]
             }
@@ -302,8 +300,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "10547",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "10547"
                 }
               ]
             }
@@ -333,8 +330,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "329865",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "329865"
                 }
               ]
             }
@@ -364,8 +360,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "550",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "550"
                 }
               ]
             }
@@ -395,8 +390,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "550",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "550"
                 }
               ]
             }
@@ -426,8 +420,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "820709",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "820709"
                 }
               ]
             }
@@ -457,8 +450,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "550",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "550"
                 }
               ]
             }
@@ -497,8 +489,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "530385",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "530385"
                 }
               ]
             }
@@ -528,8 +519,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "550",
-                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                  "value": "550"
                 }
               ]
             }
@@ -543,7 +533,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/movies/trending",
+              "raw": "http://localhost:8000/api/v1/movies/featured",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -553,7 +543,7 @@
                 "api",
                 "v1",
                 "movies",
-                "trending"
+                "featured"
               ]
             }
           },
@@ -715,9 +705,384 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "search",
+          "id": "2ed10c9d-55a6-4795-96a1-1090afd11078",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"language\": \"fr-FR\",\r\n  \"region\": \"FR\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/search?q=bob",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "bob"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "friends-favorites",
+          "id": "bc6030de-2194-43f5-8ec7-d74cdf015008",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"language\": \"fr-FR\",\r\n  \"region\": \"FR\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/:user_id/favorites",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ":user_id",
+                "favorites"
+              ],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
+                  "uuid": "22fe10f3-cd27-4d97-9aa3-3506795c6025"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "friends-watchlist",
+          "id": "4845ac8c-1134-4ec4-a4f8-6ef84b944a39",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"language\": \"fr-FR\",\r\n  \"region\": \"FR\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/:user_id/watchlist",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ":user_id",
+                "watchlist"
+              ],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
+                  "uuid": "22fe10f3-cd27-4d97-9aa3-3506795c6025"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "friends-watched",
+          "id": "1c462dd1-d95e-4dc9-ae4f-51c12e5f2238",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"language\": \"fr-FR\",\r\n  \"region\": \"FR\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/:user_id/watched",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ":user_id",
+                "watched"
+              ],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
+                  "uuid": "22fe10f3-cd27-4d97-9aa3-3506795c6025"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "friends-ratings",
+          "id": "b09974b2-1a20-4a71-800d-925c6abad9ec",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"language\": \"fr-FR\",\r\n  \"region\": \"FR\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/:user_id/ratings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ":user_id",
+                "ratings"
+              ],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
+                  "uuid": "22fe10f3-cd27-4d97-9aa3-3506795c6025"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ],
       "id": "5216c2b5-5f35-4b4b-98e7-8bdb3e44f000"
+    },
+    {
+      "name": "friends",
+      "item": [
+        {
+          "name": "friends",
+          "id": "0fc9ca09-ea4a-4443-b874-8d5f456d9fbf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/friends",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "friends"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "requests",
+          "id": "1aab089c-bd20-46da-bfe9-0402ce2b0718",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/friends/requests",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "friends",
+                "requests"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "send-request",
+          "id": "0f25c371-6ebb-4ce7-a5b2-8884c1451f77",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\": \"bob\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/friends/requests",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "friends",
+                "requests"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "accept",
+          "id": "ebbc754c-5cae-4a50-bbab-c3cc067f8249",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/friends/requests/:requester_id/accept",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "friends",
+                "requests",
+                ":requester_id",
+                "accept"
+              ],
+              "variable": [
+                {
+                  "key": "requester_id",
+                  "value": "ede322df-d4b4-4b77-8203-b6ab8ac2426c",
+                  "uuid": "6b9660c8-a836-4714-81e5-6c221a8811df"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reject",
+          "id": "bea2ed8e-45bc-497b-b8f1-368ad479d576",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/friends/requests/:requester_id/reject",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "friends",
+                "requests",
+                ":requester_id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "requester_id",
+                  "value": "ede322df-d4b4-4b77-8203-b6ab8ac2426c",
+                  "uuid": "6b9660c8-a836-4714-81e5-6c221a8811df"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "unsend-request",
+          "id": "245cdd6c-ca12-4c69-ba96-75c28d430a2e",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/friends/:addressee_id",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "friends",
+                ":addressee_id"
+              ],
+              "variable": [
+                {
+                  "key": "addressee_id",
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
+                  "uuid": "c9d07290-6a62-4494-8a01-8b1626db074d"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "22ada90c-d44c-41bf-9e37-93d3d2af8dbe"
     }
   ],
   "auth": {
@@ -725,7 +1090,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZGUzMjJkZi1kNGI0LTRiNzctODIwMy1iNmFiOGFjMjQyNmMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5ODk5NDkxLCJleHAiOjE3Nzk5MDAzOTF9.hdardyjL-poPyzbPIjHTuzGFq8qEVYxvjwIXT5_Jq84",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZGUzMjJkZi1kNGI0LTRiNzctODIwMy1iNmFiOGFjMjQyNmMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5OTAyNzQ3LCJleHAiOjE3Nzk5MDM2NDd9.B-L5HiFb3oKRxH_rRUjMicvdPEjJw4XoQiRb-jcuvgo",
         "type": "string"
       }
     ]

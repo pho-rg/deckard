@@ -73,16 +73,29 @@ class UserMovieService:
         }
 
     def list_favorites(self, user: User) -> list[Movie]:
-        return self.favorites.list_movies(user.id)
+        return self.list_favorites_for(user.id)
 
     def list_watchlist(self, user: User) -> list[Movie]:
-        return self.watchlist.list_movies(user.id)
+        return self.list_watchlist_for(user.id)
 
     def list_watched(self, user: User) -> list[Movie]:
-        return self.watched.list_movies(user.id)
+        return self.list_watched_for(user.id)
 
     def list_ratings(self, user: User) -> list[Rating]:
-        return self.ratings.list_for_user(user.id)
+        return self.list_ratings_for(user.id)
+
+    # by user_id — used to expose friends' collections
+    def list_favorites_for(self, user_id) -> list[Movie]:
+        return self.favorites.list_movies(user_id)
+
+    def list_watchlist_for(self, user_id) -> list[Movie]:
+        return self.watchlist.list_movies(user_id)
+
+    def list_watched_for(self, user_id) -> list[Movie]:
+        return self.watched.list_movies(user_id)
+
+    def list_ratings_for(self, user_id) -> list[Rating]:
+        return self.ratings.list_for_user(user_id)
 
     # ------------ internals ------------
 

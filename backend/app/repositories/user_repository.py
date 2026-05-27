@@ -25,3 +25,23 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(user)
         return user
+
+    def search_by_username(
+        self,
+        query: str,
+        *,
+        limit: int = 20,
+        exclude_user_id: uuid.UUID | None = None,
+    ) -> list[User]:
+        escaped = (
+            query.replace("\\", "\\\\")
+                 .replace("%", "\\%")
+                 .replace("_", "\\_")
+        )
+        stmt = select(User).where(
+            User.username.ilike(f"%{escaped}%", escape="\\")
+        )
+        if exclude_user_id is not None:
+            stmt = stmt.where(User.id != exclude_user_id)
+        stmt = stmt.order_by(User.username).limit(limit)
+        return list(self.db.scalars(stmt))

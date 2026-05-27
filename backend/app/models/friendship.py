@@ -1,12 +1,16 @@
 import enum
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class FriendshipStatus(str, enum.Enum):
@@ -45,4 +49,12 @@ class Friendship(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    # Two FKs to users.id — disambiguate with foreign_keys
+    requester: Mapped["User"] = relationship(
+        foreign_keys=[requester_id], lazy="joined"
+    )
+    addressee: Mapped["User"] = relationship(
+        foreign_keys=[addressee_id], lazy="joined"
     )
