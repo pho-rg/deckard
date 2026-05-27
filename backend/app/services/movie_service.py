@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -7,15 +8,18 @@ from app.config import settings
 from app.integrations.tmdb import TMDBClient, get_tmdb_client
 from app.models.movie import Movie
 from app.repositories.movie_repository import MovieRepository
+from app.services import tmdb_cache
 
 logger = logging.getLogger(__name__)
 
 
 class MovieService:
-    """Orchestrates the lazy cache for movie details.
+    """Orchestrates the lazy cache for movie details + the in-process TTL cache
+    for list endpoints (search, trending, now_playing).
 
-    - Cache hit (movie present, fresh)  → return it
-    - Cache miss or stale               → fetch TMDB, persist, return reloaded movie
+    - Detail (movie present, fresh)  → return from DB
+    - Detail miss/stale              → fetch TMDB, persist, return
+    - List                           → memory cache, falls back to TMDB
     """
 
     def __init__(self, db: Session, tmdb: TMDBClient | None = None):
@@ -35,6 +39,34 @@ class MovieService:
             tmdb_id,
         )
         return self._sync(tmdb_id, language=language)
+
+    # ------------ list endpoints (memory-cached, no DB) ------------
+
+    def search_movies(
+        self, query: str, *, page: int = 1, language: str = "fr-FR"
+    ) -> dict[str, Any]:
+        key = ("search", query.strip().lower(), page, language)
+        return tmdb_cache.get_or_compute(
+            "search",
+            key,
+            lambda: self.tmdb.search_movies(query, page=page, language=language),
+        )
+
+    def list_trending(self, *, language: str = "fr-FR") -> dict[str, Any]:
+        key = ("trending", language)
+        return tmdb_cache.get_or_compute(
+            "trending", key, lambda: self.tmdb.trending(language=language)
+        )
+
+    def list_now_playing(
+        self, *, region: str = "FR", page: int = 1, language: str = "fr-FR"
+    ) -> dict[str, Any]:
+        key = ("now_playing", region, page, language)
+        return tmdb_cache.get_or_compute(
+            "now_playing",
+            key,
+            lambda: self.tmdb.now_playing(region=region, page=page, language=language),
+        )
 
     # ------------ internals ------------
 

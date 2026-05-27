@@ -1,11 +1,15 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.movie import Movie
 
 
 class Rating(Base):
@@ -45,3 +49,5 @@ class Rating(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    movie: Mapped["Movie"] = relationship(lazy="joined")

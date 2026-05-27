@@ -3,7 +3,14 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, computed_field
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+)
 
 from app.config import settings
 
@@ -85,3 +92,49 @@ class MovieOut(BaseModel):
     @property
     def backdrop_url(self) -> str | None:
         return _image_url(self.backdrop_path, "w1280")
+
+
+class MovieSummary(BaseModel):
+    """Lightweight movie shape used in list endpoints (search, trending, now-playing).
+
+    Maps directly from a TMDB list ``results[]`` entry. ``id`` → ``tmdb_id`` and
+    raw image paths are hidden in favor of composed URLs.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    tmdb_id: int = Field(validation_alias=AliasChoices("tmdb_id", "id"))
+    title: str
+    original_title: str | None = None
+    overview: str | None = None
+    release_date: date | None = None
+    vote_average: Decimal | None = None
+    genre_ids: list[int] = []
+
+    poster_path: str | None = Field(default=None, exclude=True)
+    backdrop_path: str | None = Field(default=None, exclude=True)
+
+    @field_validator("release_date", mode="before")
+    @classmethod
+    def _empty_date_to_none(cls, v):
+        # TMDB returns "" instead of null for unknown release dates.
+        return v or None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def poster_url(self) -> str | None:
+        return _image_url(self.poster_path, "w500")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def backdrop_url(self) -> str | None:
+        return _image_url(self.backdrop_path, "w1280")
+
+
+class PagedMovies(BaseModel):
+    """TMDB-style paginated envelope around :class:`MovieSummary`."""
+
+    page: int
+    total_pages: int
+    total_results: int
+    results: list[MovieSummary]
