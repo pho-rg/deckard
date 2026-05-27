@@ -135,39 +135,6 @@
             }
           },
           "response": []
-        },
-        {
-          "name": "me",
-          "id": "a8e9b3e0-3d31-4742-9bb7-17655e5fd45d",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlODg0NmM2OS1mNTk0LTRiYmYtOGFjMS02ZTZkMjA1MmExNDEiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5NTI4MDM3LCJleHAiOjE3Nzk1Mjg5Mzd9.shhBDirZOSLCovoRsUBcrN9nD6s_6SlV7bX44FPjDZw",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8000/api/v1/auth/me",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8000",
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "me"
-              ]
-            }
-          },
-          "response": []
         }
       ],
       "id": "95cff6af-3745-458e-beb8-8a23555e4989"
@@ -176,19 +143,568 @@
       "name": "movies",
       "item": [
         {
-          "name": "New Request",
+          "name": "search",
           "id": "45289f2c-0888-4f47-8314-91954636be40",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": ""
+              "raw": "http://localhost:8000/api/v1/movies/search?q=arrival",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "arrival",
+                  "uuid": "b75b16de-dddd-405b-b748-6bbd8686932b"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "trending",
+          "id": "e7288b15-542e-4014-af38-33677c182a8c",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/trending",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "trending"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "now-playing",
+          "id": "18f6bd02-c16a-4456-8388-6871273fcf63",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/now-playing",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "now-playing"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "movie",
+          "id": "f2dfc77e-e8e8-4c35-9966-916171b6363f",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "user-state",
+          "id": "3c81c607-250f-44a1-8235-4c06df6a2d28",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id/user-state",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id",
+                "user-state"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "favorite",
+          "id": "013c6099-f0f1-4f2c-90d1-26c48ae13727",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id/favorite",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id",
+                "favorite"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "10547",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "favorite",
+          "id": "a80d2ff6-ecf5-4b41-a1a5-d04c2de443a3",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id/favorite",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id",
+                "favorite"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "329865",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "watchlist",
+          "id": "fe80c331-d2ae-4967-bf0c-d4fb325ca76d",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id/watchlist",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id",
+                "watchlist"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "watchlist",
+          "id": "58e99697-6445-4c1f-994f-47ef246a1725",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id/watchlist",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id",
+                "watchlist"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "watched",
+          "id": "35ad6cf9-fd4a-41b8-b1b1-5812e9a34767",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id/watched",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id",
+                "watched"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "820709",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "watched",
+          "id": "e043cfba-88ce-4e2a-ae39-d5f4cad92239",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id/watched",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id",
+                "watched"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "rating",
+          "id": "43c8e98f-f726-4164-9b1a-8b235d7cee51",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"stars\":4.5 //0-5 & half star allowed\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id/rating",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id",
+                "rating"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "530385",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "rating Copy",
+          "id": "70b80b34-9c9b-464a-9241-c4b904baebc7",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/:id/rating",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id",
+                "rating"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550",
+                  "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
+                }
+              ]
             }
           },
           "response": []
         }
       ],
       "id": "ee54d4ba-5b98-48ba-a3bc-c6abb11b6185"
+    },
+    {
+      "name": "users",
+      "item": [
+        {
+          "name": "me",
+          "id": "2de53e7d-790b-4642-8749-bb03b5409b0f",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/me",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "me",
+          "id": "dca28af6-6a2c-4edc-a8f1-2dfdf22da6f5",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"language\": \"fr-FR\",\r\n  \"region\": \"FR\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/me",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "favorites",
+          "id": "2a26f137-067b-462f-a5b1-9f4c4ef86521",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/me/favorites",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "favorites"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "watchlist",
+          "id": "8eaae1b2-6482-4354-8768-f67b28681cba",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/me/watchlist",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "watchlist"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "watched",
+          "id": "8cfd8930-e68f-4833-a7db-5a226761e830",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/me/watched",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "watched"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ratings",
+          "id": "0961c38d-c252-4d8e-a0b9-337f7cfb4ca4",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/users/me/watched",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "watched"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "5216c2b5-5f35-4b4b-98e7-8bdb3e44f000"
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZGUzMjJkZi1kNGI0LTRiNzctODIwMy1iNmFiOGFjMjQyNmMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5ODk0NTUyLCJleHAiOjE3Nzk4OTU0NTJ9.AuADCpn6UuMhegNLpku02epFdKRrEfJIKCAiDX9ADVU",
+        "type": "string"
+      }
+    ]
+  }
 }
