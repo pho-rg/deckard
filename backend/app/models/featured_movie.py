@@ -9,7 +9,7 @@ from app.models.base import Base
 
 
 class FeaturedMovie(Base):
-    """Editorial pick — admin chooses the movie shown on the discovery page."""
+    # Manual pick for "Film a la Une"
 
     __tablename__ = "featured_movies"
 

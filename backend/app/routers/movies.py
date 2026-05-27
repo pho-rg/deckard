@@ -9,10 +9,6 @@ from app.services.user_movie_service import UserMovieService
 
 router = APIRouter(prefix="/movies", tags=["movies"])
 
-
-# ---- Static paths MUST come before /{tmdb_id} (FastAPI matches in order). ----
-
-
 @router.get("/search", response_model=PagedMovies)
 def search_movies(
     db: DbSession,
@@ -49,10 +45,6 @@ def list_now_playing(
     except (TMDBRateLimited, TMDBUnavailable) as exc:
         _raise_upstream(exc)
 
-
-# ---- /{tmdb_id} ----
-
-
 @router.get("/{tmdb_id}", response_model=MovieOut)
 def get_movie(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     try:
@@ -64,7 +56,7 @@ def get_movie(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     except (TMDBRateLimited, TMDBUnavailable) as exc:
         _raise_upstream(exc)
 
-
+# For a movie & user, provides boolean: is_favorite, in_watchlist, is_watched, user_rating (float)
 @router.get("/{tmdb_id}/user-state", response_model=UserStateOut)
 def get_user_state(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     return UserMovieService(db).get_user_state(current_user, tmdb_id)

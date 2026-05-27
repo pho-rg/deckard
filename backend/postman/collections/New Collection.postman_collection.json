@@ -676,7 +676,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/users/me/watched",
+              "raw": "http://localhost:8000/api/v1/users/me/ratings",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -687,7 +687,7 @@
                 "v1",
                 "users",
                 "me",
-                "watched"
+                "ratings"
               ]
             }
           },
@@ -702,7 +702,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZGUzMjJkZi1kNGI0LTRiNzctODIwMy1iNmFiOGFjMjQyNmMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5ODk0NTUyLCJleHAiOjE3Nzk4OTU0NTJ9.AuADCpn6UuMhegNLpku02epFdKRrEfJIKCAiDX9ADVU",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZGUzMjJkZi1kNGI0LTRiNzctODIwMy1iNmFiOGFjMjQyNmMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5ODk4MjYyLCJleHAiOjE3Nzk4OTkxNjJ9.BI1bkLDQf-4Gdi0YQ-jyCI6x_5B4z-LvnH7HKNDknEY",
         "type": "string"
       }
     ]

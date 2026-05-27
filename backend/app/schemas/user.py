@@ -16,7 +16,6 @@ class UserOut(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    """Partial update of the current user. Any field set to ``null`` is ignored."""
 
     language: str | None = Field(
         default=None,

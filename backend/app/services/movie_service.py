@@ -13,15 +13,8 @@ from app.services import tmdb_cache
 logger = logging.getLogger(__name__)
 
 
+# cache mechanism
 class MovieService:
-    """Orchestrates the lazy cache for movie details + the in-process TTL cache
-    for list endpoints (search, trending, now_playing).
-
-    - Detail (movie present, fresh)  → return from DB
-    - Detail miss/stale              → fetch TMDB, persist, return
-    - List                           → memory cache, falls back to TMDB
-    """
-
     def __init__(self, db: Session, tmdb: TMDBClient | None = None):
         self.db = db
         self.tmdb = tmdb or get_tmdb_client()

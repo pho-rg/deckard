@@ -1,13 +1,3 @@
-"""In-process TTL caches for TMDB list endpoints.
-
-One bucket per endpoint family — buckets have independent TTLs because the
-freshness requirements differ (trending changes daily, now_playing barely
-changes within a day).
-
-If/when we run multiple API instances we'll swap the implementation for Redis
-behind the same :func:`get_or_compute` interface. Callers don't care.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Callable, Hashable
@@ -26,13 +16,11 @@ _caches: dict[str, TTLCache] = {
 def get_or_compute(
     bucket: str, key: Hashable, fn: Callable[[], Any]
 ) -> Any:
-    """Return cached value or compute + cache it.
-
-    Raises KeyError if ``bucket`` was not declared in ``_caches``.
-    """
+    # Return cached value or compute + cache it
     cache = _caches[bucket]
     try:
         return cache[key]
+    # Raises KeyError if bucket was not declared in _caches
     except KeyError:
         value = fn()
         cache[key] = value
@@ -40,7 +28,7 @@ def get_or_compute(
 
 
 def clear(bucket: str | None = None) -> None:
-    """Empty a bucket (or all of them). Mostly useful for tests."""
+    # Empty a bucket (or all of them)
     if bucket is None:
         for c in _caches.values():
             c.clear()

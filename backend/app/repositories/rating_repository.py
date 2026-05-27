@@ -22,7 +22,6 @@ class RatingRepository:
     def upsert(
         self, user_id: uuid.UUID, movie_id: int, half_stars: int
     ) -> None:
-        """Insert a rating, or update it if one already exists for (user, movie)."""
         now = datetime.now(timezone.utc)
         stmt = pg_insert(Rating).values(
             user_id=user_id,
@@ -48,7 +47,6 @@ class RatingRepository:
         return result.rowcount > 0
 
     def list_for_user(self, user_id: uuid.UUID) -> list[Rating]:
-        """User's ratings, newest update first, with each ``Rating.movie`` eagerly loaded."""
         return list(
             self.db.scalars(
                 select(Rating)

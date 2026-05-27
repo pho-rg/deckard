@@ -41,7 +41,7 @@ class PersonOut(BaseModel):
     name: str
     profile_path: str | None = Field(default=None, exclude=True)
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field  
     @property
     def profile_url(self) -> str | None:
         return _image_url(self.profile_path, "w185")
@@ -83,24 +83,18 @@ class MovieOut(BaseModel):
     cast: list[CastOut] = []
     crew: list[CrewOut] = []
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field  
     @property
     def poster_url(self) -> str | None:
         return _image_url(self.poster_path, "w500")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field  
     @property
     def backdrop_url(self) -> str | None:
         return _image_url(self.backdrop_path, "w1280")
 
 
 class MovieSummary(BaseModel):
-    """Lightweight movie shape used in list endpoints (search, trending, now-playing).
-
-    Maps directly from a TMDB list ``results[]`` entry. ``id`` → ``tmdb_id`` and
-    raw image paths are hidden in favor of composed URLs.
-    """
-
     model_config = ConfigDict(populate_by_name=True)
 
     tmdb_id: int = Field(validation_alias=AliasChoices("tmdb_id", "id"))
@@ -120,19 +114,18 @@ class MovieSummary(BaseModel):
         # TMDB returns "" instead of null for unknown release dates.
         return v or None
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field  
     @property
     def poster_url(self) -> str | None:
         return _image_url(self.poster_path, "w500")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field  
     @property
     def backdrop_url(self) -> str | None:
         return _image_url(self.backdrop_path, "w1280")
 
 
 class PagedMovies(BaseModel):
-    """TMDB-style paginated envelope around :class:`MovieSummary`."""
 
     page: int
     total_pages: int

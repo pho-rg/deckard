@@ -10,12 +10,6 @@ if TYPE_CHECKING:
 
 
 class MovieCrew(Base):
-    """Crew member for a movie.
-
-    A single person can hold multiple jobs on the same movie (director +
-    writer), hence the composite PK includes ``job``.
-    """
-
     __tablename__ = "movie_crew"
 
     movie_id: Mapped[int] = mapped_column(

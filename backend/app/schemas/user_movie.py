@@ -6,8 +6,6 @@ from app.schemas.movie import MovieSummary
 
 
 class UserStateOut(BaseModel):
-    """Per-user view of a movie: did I favorite / watchlist / watch / rate it?"""
-
     is_favorite: bool
     in_watchlist: bool
     is_watched: bool
@@ -18,18 +16,10 @@ class UserStateOut(BaseModel):
 
 
 class RatingIn(BaseModel):
-    """Body for PUT /movies/{id}/rating.
-
-    Stars are exposed 0..5 by 0.5 increments; the storage stays integer
-    (0..10 half-stars) for exactness.
-    """
-
     stars: float = Field(ge=0, le=5, multiple_of=0.5)
 
 
 class RatingOut(BaseModel):
-    """A user's rating without the movie payload (used in single-movie context)."""
-
     model_config = ConfigDict(from_attributes=True)
 
     movie_id: int
@@ -47,8 +37,6 @@ class RatingOut(BaseModel):
 
 
 class RatingWithMovieOut(BaseModel):
-    """A user's rating with the rated movie embedded — used by /users/me/ratings."""
-
     model_config = ConfigDict(from_attributes=True)
 
     movie: MovieSummary

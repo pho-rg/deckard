@@ -14,13 +14,13 @@ from app.models.person import Person
 
 
 class MovieRepository:
-    """Persistence for the lazy-cached movie graph (movie + genres + credits)."""
+    # Persistence for the lazy-cached movie (movie + genres + credits)
 
     def __init__(self, db: Session):
         self.db = db
 
     def get_full(self, tmdb_id: int) -> Movie | None:
-        """Load a movie with genres, cast and crew eagerly."""
+        # Load a movie with genres, cast and crew
         return self.db.scalar(
             select(Movie)
             .where(Movie.tmdb_id == tmdb_id)
@@ -34,7 +34,7 @@ class MovieRepository:
     # ------------ upserts ------------
 
     def upsert_movie(self, payload: dict[str, Any]) -> None:
-        """Upsert the main movies row from a TMDB ``/movie/{id}`` payload."""
+        # Insert or update movie
         stmt = insert(Movie).values(
             tmdb_id=payload["id"],
             title=payload.get("title") or payload.get("original_title") or "",
@@ -66,9 +66,8 @@ class MovieRepository:
         self.db.execute(stmt)
 
     def replace_genres(self, movie_id: int, genres_payload: list[dict[str, Any]]) -> None:
-        """Replace the movie's genre links. Upserts unknown genres defensively."""
         if genres_payload:
-            # Safety net: if TMDB references a genre we haven't synced yet, insert it.
+            # If TMDB references a genre we haven't synced yet, insert it.
             genre_stmt = insert(Genre).values(
                 [{"tmdb_id": g["id"], "name": g["name"]} for g in genres_payload]
             ).on_conflict_do_nothing(index_elements=[Genre.tmdb_id])
@@ -83,11 +82,10 @@ class MovieRepository:
             )
 
     def replace_credits(self, movie_id: int, credits_payload: dict[str, Any]) -> None:
-        """Replace cast and crew rows wholesale + upsert any referenced persons."""
         cast = credits_payload.get("cast", [])
         crew = credits_payload.get("crew", [])
 
-        # 1. Upsert all unique persons referenced.
+        # Upsert all unique persons referenced
         people: dict[int, dict[str, Any]] = {}
         for entry in (*cast, *crew):
             people[entry["id"]] = {
@@ -106,11 +104,11 @@ class MovieRepository:
             )
             self.db.execute(person_stmt)
 
-        # 2. Wipe existing credits for this movie.
+        # Wipe existing credits for this movie
         self.db.execute(delete(MovieCast).where(MovieCast.movie_id == movie_id))
         self.db.execute(delete(MovieCrew).where(MovieCrew.movie_id == movie_id))
 
-        # 3. Insert new cast (dedupe by person_id — TMDB rarely duplicates).
+        # Insert new cast
         seen_cast: set[int] = set()
         cast_rows: list[dict[str, Any]] = []
         for c in cast:
@@ -128,7 +126,7 @@ class MovieRepository:
         if cast_rows:
             self.db.execute(insert(MovieCast).values(cast_rows))
 
-        # 4. Insert new crew (dedupe by (person_id, job); drop entries without a job).
+        # Insert new crew
         seen_crew: set[tuple[int, str]] = set()
         crew_rows: list[dict[str, Any]] = []
         for c in crew:
@@ -152,7 +150,6 @@ class MovieRepository:
 
 
 def _safe_date(raw: str | None):
-    """TMDB returns ``""`` for missing dates; coerce to None."""
     if not raw:
         return None
-    return raw  # SQLAlchemy parses ISO date strings just fine
+    return raw

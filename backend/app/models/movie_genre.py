@@ -5,8 +5,6 @@ from app.models.base import Base
 
 
 class MovieGenre(Base):
-    """Join table — many-to-many between movies and genres."""
-
     __tablename__ = "movie_genres"
 
     movie_id: Mapped[int] = mapped_column(

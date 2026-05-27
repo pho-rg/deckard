@@ -13,16 +13,7 @@ if TYPE_CHECKING:
 
 
 class Rating(Base):
-    """User rating for a movie.
-
-    Stored as an integer half-star count: 0..10 maps to 0..5 stars in 0.5 steps.
-        0  → 0     stars     6  → 3     stars
-        1  → 0.5   stars     7  → 3.5   stars
-        2  → 1     star      8  → 4     stars
-        3  → 1.5   stars     9  → 4.5   stars
-        4  → 2     stars    10  → 5     stars
-        5  → 2.5   stars
-    """
+    # user rating from 0 to 10 ; odd number as half star for frontend
 
     __tablename__ = "ratings"
     __table_args__ = (

@@ -14,11 +14,8 @@ if TYPE_CHECKING:
 
 
 class Movie(Base):
-    """Movie cached from TMDB.
-
-    Populated lazily on first request to /movies/{tmdb_id}, refreshed when
-    `last_synced_at` is older than the configured TTL.
-    """
+    # Movie cached from TMDB - Populated lazily on first request to /movies/{tmdb_id}
+    # refreshed when `last_synced_at` is older than the configured TTL.
 
     __tablename__ = "movies"
 

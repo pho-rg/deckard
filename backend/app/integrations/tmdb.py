@@ -1,11 +1,4 @@
-"""Thin sync HTTP client around the TMDB v3 API.
-
-Auth uses the v4 Read Access Token (JWT) sent as ``Authorization: Bearer …``.
-Methods return parsed JSON dicts as-is — translation to domain models happens
-in the service layer.
-
-Reference: https://developer.themoviedb.org/reference/intro/getting-started
-"""
+# TMDB API endpoints to reach
 
 from __future__ import annotations
 
@@ -20,8 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 # --------- exceptions ----------
-
-
 class TMDBError(Exception):
     """Base class for all TMDB integration errors."""
 
@@ -39,22 +30,10 @@ class TMDBUnavailable(TMDBError):
 
 
 # --------- client ----------
-
-
 _DEFAULT_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 
 
 class TMDBClient:
-    """Sync TMDB v3 client.
-
-    Use as a context manager to release the underlying HTTP connection pool::
-
-        with TMDBClient() as tmdb:
-            movie = tmdb.get_movie(550)
-
-    or rely on the module-level singleton via :func:`get_tmdb_client`.
-    """
-
     def __init__(
         self,
         api_key: str | None = None,
@@ -82,13 +61,13 @@ class TMDBClient:
     # ----- endpoints -----
 
     def get_movie(self, tmdb_id: int, *, language: str = "fr-FR") -> dict[str, Any]:
-        """GET /movie/{movie_id} — full movie details."""
+        # full movie detail
         return self._get(f"/movie/{tmdb_id}", params={"language": language})
 
     def get_movie_credits(
         self, tmdb_id: int, *, language: str = "fr-FR"
     ) -> dict[str, Any]:
-        """GET /movie/{movie_id}/credits — cast + crew arrays."""
+        # movie credits (cast & crew)
         return self._get(f"/movie/{tmdb_id}/credits", params={"language": language})
 
     def search_movies(
@@ -99,10 +78,7 @@ class TMDBClient:
         language: str = "fr-FR",
         include_adult: bool = False,
     ) -> dict[str, Any]:
-        """GET /search/movie — search by title.
-
-        Returns a paginated envelope ``{page, total_pages, total_results, results}``.
-        """
+        # search result
         return self._get(
             "/search/movie",
             params={
@@ -114,11 +90,7 @@ class TMDBClient:
         )
 
     def trending(self, *, language: str = "fr-FR") -> dict[str, Any]:
-        """GET /trending/movie/week — weekly trending.
-
-        The time window is hardcoded to ``week`` per the design decision; if a
-        ``day`` variant is needed later, add it as a new method.
-        """
+        # popular movies
         return self._get("/trending/movie/week", params={"language": language})
 
     def now_playing(
@@ -128,14 +100,14 @@ class TMDBClient:
         page: int = 1,
         language: str = "fr-FR",
     ) -> dict[str, Any]:
-        """GET /movie/now_playing — movies currently in theaters in ``region``."""
+        # movies currently in theaters
         return self._get(
             "/movie/now_playing",
             params={"region": region, "page": page, "language": language},
         )
 
     def list_genres(self, *, language: str = "fr-FR") -> dict[str, Any]:
-        """GET /genre/movie/list — the canonical TMDB movie genre list."""
+        # known movie genders
         return self._get("/genre/movie/list", params={"language": language})
 
     # ----- internal -----
@@ -177,11 +149,7 @@ _singleton: TMDBClient | None = None
 
 
 def get_tmdb_client() -> TMDBClient:
-    """Return a process-wide TMDBClient.
-
-    httpx.Client is thread-safe and reuses connections — keeping a single
-    instance avoids burning a new TCP handshake per request.
-    """
+    # reuses connections — keeping a single instance
     global _singleton
     if _singleton is None:
         _singleton = TMDBClient()

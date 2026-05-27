@@ -1,12 +1,5 @@
-"""Sync TMDB movie genres into the local ``genres`` table.
-
-TMDB ships a stable, small list (~19 entries) at ``/genre/movie/list``. This
-script fetches it and upserts each row, so it is safe to re-run anytime.
-
-Usage::
-
-    docker compose exec api python -m app.scripts.sync_genres
-"""
+# Syncrhonize TMDB movie genres
+# Usage: docker compose exec api python -m app.scripts.sync_genres
 
 from __future__ import annotations
 
@@ -24,7 +17,6 @@ logger = logging.getLogger("sync_genres")
 
 
 def sync_genres() -> int:
-    """Fetch genres from TMDB and upsert them. Returns the count synced."""
     with TMDBClient() as tmdb:
         payload = tmdb.list_genres()
 

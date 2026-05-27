@@ -5,8 +5,7 @@ from app.models.base import Base
 
 
 class Person(Base):
-    """Actor / crew member, cached from TMDB."""
-
+    # Actor, crew, credits
     __tablename__ = "persons"
 
     tmdb_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)

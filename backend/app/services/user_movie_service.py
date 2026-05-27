@@ -1,9 +1,4 @@
-"""Service for user-centric movie actions: favorites, watchlist, watched, rating.
-
-Every mutating action first makes sure the movie exists in our cache (so the FK
-constraint passes) — this is done by delegating to :class:`MovieService` which
-fetches from TMDB on a cache miss.
-"""
+# Service for user-centric movie actions: favorites, watchlist, watched, rating.
 
 from __future__ import annotations
 
@@ -92,12 +87,6 @@ class UserMovieService:
     # ------------ internals ------------
 
     def _ensure_movie_cached(self, tmdb_id: int, user: User) -> None:
-        """Make sure the movie row exists locally. Fetch from TMDB on miss.
-
-        We don't re-sync on stale here — for an action like "add to favorites",
-        any existing row is good enough for the FK. The next ``GET /movies/{id}``
-        will refresh if needed.
-        """
         already_cached = self.db.scalar(
             select(Movie.tmdb_id).where(Movie.tmdb_id == tmdb_id).limit(1)
         )
