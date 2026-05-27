@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.featured_movie import FeaturedMovie
 from app.models.genre import Genre
 from app.models.movie import Movie
 from app.models.movie_cast import MovieCast
@@ -29,6 +30,32 @@ class MovieRepository:
                 selectinload(Movie.cast).joinedload(MovieCast.person),
                 selectinload(Movie.crew).joinedload(MovieCrew.person),
             )
+        )
+
+    def get_featured(self) -> Movie | None:
+        # Active window first, fallback to most recently inserted
+        options = (
+            selectinload(Movie.genres),
+            selectinload(Movie.cast).joinedload(MovieCast.person),
+            selectinload(Movie.crew).joinedload(MovieCrew.person),
+        )
+        now = func.now()
+        active = self.db.scalar(
+            select(Movie)
+            .join(FeaturedMovie, FeaturedMovie.movie_id == Movie.tmdb_id)
+            .where(FeaturedMovie.starts_at <= now, FeaturedMovie.ends_at >= now)
+            .order_by(FeaturedMovie.starts_at.desc())
+            .limit(1)
+            .options(*options)
+        )
+        if active is not None:
+            return active
+        return self.db.scalar(
+            select(Movie)
+            .join(FeaturedMovie, FeaturedMovie.movie_id == Movie.tmdb_id)
+            .order_by(FeaturedMovie.created_at.desc())
+            .limit(1)
+            .options(*options)
         )
 
     # ------------ upserts ------------

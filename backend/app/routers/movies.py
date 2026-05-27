@@ -45,6 +45,18 @@ def list_now_playing(
     except (TMDBRateLimited, TMDBUnavailable) as exc:
         _raise_upstream(exc)
 
+# Active featured window, fallback to most recently inserted entry
+@router.get("/featured", response_model=MovieOut)
+def get_featured(db: DbSession, current_user: CurrentUser):
+    movie = MovieService(db).get_featured()
+    if movie is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No featured movie configured",
+        )
+    return movie
+
+
 @router.get("/{tmdb_id}", response_model=MovieOut)
 def get_movie(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     try:

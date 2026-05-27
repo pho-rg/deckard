@@ -240,7 +240,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "550",
+                  "value": "6977",
                   "uuid": "0d19972e-64d3-4ef9-803b-2ae4b4b5cfc6"
                 }
               ]
@@ -535,6 +535,29 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "featured-movie",
+          "id": "52a3c3ce-a822-488e-b83b-654fdc267893",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/movies/trending",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "trending"
+              ]
+            }
+          },
+          "response": []
         }
       ],
       "id": "ee54d4ba-5b98-48ba-a3bc-c6abb11b6185"
@@ -702,7 +725,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZGUzMjJkZi1kNGI0LTRiNzctODIwMy1iNmFiOGFjMjQyNmMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5ODk4MjYyLCJleHAiOjE3Nzk4OTkxNjJ9.BI1bkLDQf-4Gdi0YQ-jyCI6x_5B4z-LvnH7HKNDknEY",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZGUzMjJkZi1kNGI0LTRiNzctODIwMy1iNmFiOGFjMjQyNmMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5ODk5NDkxLCJleHAiOjE3Nzk5MDAzOTF9.hdardyjL-poPyzbPIjHTuzGFq8qEVYxvjwIXT5_Jq84",
         "type": "string"
       }
     ]
