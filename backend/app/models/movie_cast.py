@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.person import Person
 
 
 class MovieCast(Base):
@@ -24,3 +29,5 @@ class MovieCast(Base):
     cast_order: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="0"
     )
+
+    person: Mapped["Person"] = relationship(lazy="joined")

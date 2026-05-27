@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     tmdb_api_key: str
     tmdb_base_url: str = "https://api.themoviedb.org/3"
     tmdb_image_base_url: str = "https://image.tmdb.org/t/p"
+    movie_cache_ttl_days: int = 7
 
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000"]
 

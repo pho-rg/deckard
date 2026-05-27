@@ -1,10 +1,16 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, DateTime, Integer, Numeric, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.genre import Genre
+    from app.models.movie_cast import MovieCast
+    from app.models.movie_crew import MovieCrew
 
 
 class Movie(Base):
@@ -32,3 +38,14 @@ class Movie(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    genres: Mapped[list["Genre"]] = relationship(
+        secondary="movie_genres",
+        order_by="Genre.name",
+        lazy="select",
+    )
+    cast: Mapped[list["MovieCast"]] = relationship(
+        order_by="MovieCast.cast_order",
+        lazy="select",
+    )
+    crew: Mapped[list["MovieCrew"]] = relationship(lazy="select")

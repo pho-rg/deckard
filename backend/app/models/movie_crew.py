@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.person import Person
 
 
 class MovieCrew(Base):
@@ -25,3 +30,5 @@ class MovieCrew(Base):
     )
     job: Mapped[str] = mapped_column(String(100), primary_key=True)
     department: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    person: Mapped["Person"] = relationship(lazy="joined")
