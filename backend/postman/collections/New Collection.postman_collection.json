@@ -48,7 +48,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"email\": \"ph@example.com\",\r\n  \"password\": \"12345678\"\r\n}",
+              "raw": "{\r\n  \"email\": \"ph@example.com\",\r\n  \"password\": \"12345678\" // standard users:: Password123!\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -149,7 +149,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/movies/search?q=arrival",
+              "raw": "http://localhost:8000/api/v1/movies/search?q=no country",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -164,7 +164,7 @@
               "query": [
                 {
                   "key": "q",
-                  "value": "arrival",
+                  "value": "no country",
                   "uuid": "b75b16de-dddd-405b-b748-6bbd8686932b"
                 }
               ]
