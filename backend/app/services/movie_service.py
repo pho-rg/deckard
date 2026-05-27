@@ -33,6 +33,9 @@ class MovieService:
         )
         return self._sync(tmdb_id, language=language)
 
+    def get_featured(self) -> Movie | None:
+        return self.repo.get_featured()
+
     # ------------ list endpoints (memory-cached, no DB) ------------
 
     def search_movies(
