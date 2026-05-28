@@ -14,6 +14,8 @@ from pydantic import (
 
 from app.config import settings
 
+_YOUTUBE_WATCH = "https://www.youtube.com/watch?v="
+
 
 def _image_url(path: str | None, size: str) -> str | None:
     if not path:
@@ -21,80 +23,80 @@ def _image_url(path: str | None, size: str) -> str | None:
     return f"{settings.tmdb_image_base_url}/{size}{path}"
 
 
-class GenreOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+# ---------- localized building blocks (built by the presenter, not from_attributes) ----------
 
+
+class GenreOut(BaseModel):
     tmdb_id: int
     name: str
 
 
 class PersonOut(BaseModel):
-    """A cast/crew member as exposed by the API.
-
-    The raw ``profile_path`` is hidden; a fully composed ``profile_url`` is
-    returned so the front never needs to know the TMDB CDN.
-    """
-
-    model_config = ConfigDict(from_attributes=True)
-
     tmdb_id: int
     name: str
-    profile_path: str | None = Field(default=None, exclude=True)
-
-    @computed_field  
-    @property
-    def profile_url(self) -> str | None:
-        return _image_url(self.profile_path, "w185")
+    profile_url: str | None = None
 
 
 class CastOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     person: PersonOut
     character: str | None = None
-    # ORM column is ``cast_order`` (avoids the SQL reserved word); expose as ``order``.
-    order: int = Field(validation_alias=AliasChoices("order", "cast_order"))
+    order: int
 
 
 class CrewOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     person: PersonOut
     job: str
     department: str | None = None
 
 
-class MovieOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class MovieDetailOut(BaseModel):
+    """Full movie detail, localized for the requesting user."""
+
+    tmdb_id: int
+    imdb_id: str | None = None
+    title: str
+    original_title: str | None = None
+    overview: str | None = None
+    tag_line: str | None = None
+    release_date: date | None = None
+    runtime: int | None = None
+    original_language: str | None = None
+    vote_average: Decimal | None = None
+    status: str | None = None
+    poster_url: str | None = None
+    backdrop_url: str | None = None
+    trailer_youtube_key: str | None = None
+    genres: list[GenreOut] = []
+    cast: list[CastOut] = []
+    crew: list[CrewOut] = []
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def trailer_url(self) -> str | None:
+        if not self.trailer_youtube_key:
+            return None
+        return f"{_YOUTUBE_WATCH}{self.trailer_youtube_key}"
+
+
+class MovieCard(BaseModel):
+    """Compact movie shape for DB-sourced lists (favorites, recos, featured…)."""
 
     tmdb_id: int
     title: str
     original_title: str | None = None
     overview: str | None = None
     release_date: date | None = None
-    runtime: int | None = None
-    original_language: str | None = None
     vote_average: Decimal | None = None
+    poster_url: str | None = None
+    backdrop_url: str | None = None
 
-    poster_path: str | None = Field(default=None, exclude=True)
-    backdrop_path: str | None = Field(default=None, exclude=True)
 
-    genres: list[GenreOut] = []
-    cast: list[CastOut] = []
-    crew: list[CrewOut] = []
-
-    @computed_field  
-    @property
-    def poster_url(self) -> str | None:
-        return _image_url(self.poster_path, "w500")
-
-    @computed_field  
-    @property
-    def backdrop_url(self) -> str | None:
-        return _image_url(self.backdrop_path, "w1280")
+# ---------- TMDB passthrough (search / trending / now-playing) ----------
 
 
 class MovieSummary(BaseModel):
+    """Maps directly from a TMDB list ``results[]`` entry (no DB involved)."""
+
     model_config = ConfigDict(populate_by_name=True)
 
     tmdb_id: int = Field(validation_alias=AliasChoices("tmdb_id", "id"))
@@ -111,22 +113,20 @@ class MovieSummary(BaseModel):
     @field_validator("release_date", mode="before")
     @classmethod
     def _empty_date_to_none(cls, v):
-        # TMDB returns "" instead of null for unknown release dates.
         return v or None
 
-    @computed_field  
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def poster_url(self) -> str | None:
         return _image_url(self.poster_path, "w500")
 
-    @computed_field  
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def backdrop_url(self) -> str | None:
         return _image_url(self.backdrop_path, "w1280")
 
 
 class PagedMovies(BaseModel):
-
     page: int
     total_pages: int
     total_results: int

@@ -5,7 +5,7 @@ from typing import ClassVar
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.base import Base
 from app.models.favorite import Favorite
@@ -56,6 +56,7 @@ class _UserMovieFlagRepository:
                 .join(self.model, self.model.movie_id == Movie.tmdb_id)
                 .where(self.model.user_id == user_id)
                 .order_by(ts_col.desc())
+                .options(selectinload(Movie.contents))
             )
         )
 

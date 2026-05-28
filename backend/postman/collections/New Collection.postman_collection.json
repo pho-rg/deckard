@@ -1083,7 +1083,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODI5MTZmOC01MmJkLTQ4YTctODNlZS0wNGM3OTVlMmE5NDMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5OTc2MTA3LCJleHAiOjE3Nzk5NzcwMDd9.8XKjrpyZYdDaYr1icTFmjSpqsTjYs-KhyCLs-9lB7o4",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNDA0M2FhOS04OTZhLTQ5ZDMtYTNiYi03NzIxNWIzNGJjMTciLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5OTg3NDcyLCJleHAiOjE3Nzk5ODgzNzJ9.ALnc5UEfuxHprmmoWtwaAztmCl_8Dr6P5k2DVjnTxQc",
         "type": "string"
       }
     ]

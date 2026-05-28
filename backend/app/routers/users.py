@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 from app.deps import CurrentUser, DbSession
 from app.repositories.user_repository import UserRepository
 from app.schemas.friend import UserPublicOut
-from app.schemas.movie import MovieSummary
+from app.schemas.movie import MovieCard
 from app.schemas.user import UserOut, UserUpdate
 from app.schemas.user_movie import RatingWithMovieOut
 from app.services.friendship_service import FriendshipService
@@ -30,17 +30,17 @@ def update_me(payload: UserUpdate, db: DbSession, current_user: CurrentUser):
     return current_user
 
 
-@router.get("/me/favorites", response_model=list[MovieSummary])
+@router.get("/me/favorites", response_model=list[MovieCard])
 def list_favorites(db: DbSession, current_user: CurrentUser):
     return UserMovieService(db).list_favorites(current_user)
 
 
-@router.get("/me/watchlist", response_model=list[MovieSummary])
+@router.get("/me/watchlist", response_model=list[MovieCard])
 def list_watchlist(db: DbSession, current_user: CurrentUser):
     return UserMovieService(db).list_watchlist(current_user)
 
 
-@router.get("/me/watched", response_model=list[MovieSummary])
+@router.get("/me/watched", response_model=list[MovieCard])
 def list_watched(db: DbSession, current_user: CurrentUser):
     return UserMovieService(db).list_watched(current_user)
 
@@ -62,36 +62,28 @@ def search_users(
     )
 
 
-# ---- Other users' collections (friendship) ----
+# ---- Other users' collections (gated by friendship, localized for the viewer) ----
 
 
-@router.get("/{user_id}/favorites", response_model=list[MovieSummary])
-def list_other_favorites(
-    user_id: uuid.UUID, db: DbSession, current_user: CurrentUser
-):
+@router.get("/{user_id}/favorites", response_model=list[MovieCard])
+def list_other_favorites(user_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
     FriendshipService(db).assert_can_view_profile(current_user, user_id)
-    return UserMovieService(db).list_favorites_for(user_id)
+    return UserMovieService(db).list_favorites_for(user_id, current_user.language)
 
 
-@router.get("/{user_id}/watchlist", response_model=list[MovieSummary])
-def list_other_watchlist(
-    user_id: uuid.UUID, db: DbSession, current_user: CurrentUser
-):
+@router.get("/{user_id}/watchlist", response_model=list[MovieCard])
+def list_other_watchlist(user_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
     FriendshipService(db).assert_can_view_profile(current_user, user_id)
-    return UserMovieService(db).list_watchlist_for(user_id)
+    return UserMovieService(db).list_watchlist_for(user_id, current_user.language)
 
 
-@router.get("/{user_id}/watched", response_model=list[MovieSummary])
-def list_other_watched(
-    user_id: uuid.UUID, db: DbSession, current_user: CurrentUser
-):
+@router.get("/{user_id}/watched", response_model=list[MovieCard])
+def list_other_watched(user_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
     FriendshipService(db).assert_can_view_profile(current_user, user_id)
-    return UserMovieService(db).list_watched_for(user_id)
+    return UserMovieService(db).list_watched_for(user_id, current_user.language)
 
 
 @router.get("/{user_id}/ratings", response_model=list[RatingWithMovieOut])
-def list_other_ratings(
-    user_id: uuid.UUID, db: DbSession, current_user: CurrentUser
-):
+def list_other_ratings(user_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
     FriendshipService(db).assert_can_view_profile(current_user, user_id)
-    return UserMovieService(db).list_ratings_for(user_id)
+    return UserMovieService(db).list_ratings_for(user_id, current_user.language)

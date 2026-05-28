@@ -3,7 +3,7 @@
 import uuid
 
 from sqlalchemy import func, literal, select, union_all
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.favorite import Favorite
 from app.models.friendship import Friendship, FriendshipStatus
@@ -80,8 +80,9 @@ class RecommendationRepository:
             select(Movie)
             .join(scored, scored.c.movie_id == Movie.tmdb_id)
             .where(Movie.tmdb_id.notin_(select(my_seen.c.movie_id)))
-            .order_by(scored.c.score.desc(), Movie.title.asc())
+            .order_by(scored.c.score.desc(), Movie.tmdb_id.asc())
             .limit(limit)
+            .options(selectinload(Movie.contents))
         )
 
         return list(self.db.scalars(stmt))
