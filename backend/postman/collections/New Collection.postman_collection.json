@@ -776,8 +776,7 @@
               "variable": [
                 {
                   "key": "user_id",
-                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
-                  "uuid": "22fe10f3-cd27-4d97-9aa3-3506795c6025"
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038"
                 }
               ]
             }
@@ -816,8 +815,7 @@
               "variable": [
                 {
                   "key": "user_id",
-                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
-                  "uuid": "22fe10f3-cd27-4d97-9aa3-3506795c6025"
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038"
                 }
               ]
             }
@@ -856,8 +854,7 @@
               "variable": [
                 {
                   "key": "user_id",
-                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
-                  "uuid": "22fe10f3-cd27-4d97-9aa3-3506795c6025"
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038"
                 }
               ]
             }
@@ -896,8 +893,7 @@
               "variable": [
                 {
                   "key": "user_id",
-                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
-                  "uuid": "22fe10f3-cd27-4d97-9aa3-3506795c6025"
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038"
                 }
               ]
             }
@@ -1011,8 +1007,7 @@
               "variable": [
                 {
                   "key": "requester_id",
-                  "value": "ede322df-d4b4-4b77-8203-b6ab8ac2426c",
-                  "uuid": "6b9660c8-a836-4714-81e5-6c221a8811df"
+                  "value": "ede322df-d4b4-4b77-8203-b6ab8ac2426c"
                 }
               ]
             }
@@ -1043,8 +1038,7 @@
               "variable": [
                 {
                   "key": "requester_id",
-                  "value": "ede322df-d4b4-4b77-8203-b6ab8ac2426c",
-                  "uuid": "6b9660c8-a836-4714-81e5-6c221a8811df"
+                  "value": "ede322df-d4b4-4b77-8203-b6ab8ac2426c"
                 }
               ]
             }
@@ -1073,8 +1067,7 @@
               "variable": [
                 {
                   "key": "addressee_id",
-                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038",
-                  "uuid": "c9d07290-6a62-4494-8a01-8b1626db074d"
+                  "value": "d2c68c07-7026-43b3-add3-1043a9a80038"
                 }
               ]
             }
@@ -1090,7 +1083,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZGUzMjJkZi1kNGI0LTRiNzctODIwMy1iNmFiOGFjMjQyNmMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5OTAyNzQ3LCJleHAiOjE3Nzk5MDM2NDd9.B-L5HiFb3oKRxH_rRUjMicvdPEjJw4XoQiRb-jcuvgo",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODI5MTZmOC01MmJkLTQ4YTctODNlZS0wNGM3OTVlMmE5NDMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzc5OTc2MTA3LCJleHAiOjE3Nzk5NzcwMDd9.8XKjrpyZYdDaYr1icTFmjSpqsTjYs-KhyCLs-9lB7o4",
         "type": "string"
       }
     ]
