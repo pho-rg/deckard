@@ -1,10 +1,8 @@
 import logging
-from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.integrations.tmdb import TMDBClient, get_tmdb_client
 from app.repositories.movie_repository import MovieRepository
 from app.schemas.movie import MovieDetailOut
@@ -23,12 +21,8 @@ class MovieService:
     def get_movie_details(self, tmdb_id: int, *, language: str = "fr-FR") -> MovieDetailOut:
         lang_iso = to_iso2(language)
         movie = self.repo.get_full(tmdb_id)
-        if movie is None or not self._is_fresh(movie):
-            logger.info(
-                "%s for movie %s — fetching TMDB (safety net)",
-                "cache miss" if movie is None else "cache stale",
-                tmdb_id,
-            )
+        if movie is None:
+            logger.info("cache miss for movie %s — fetching TMDB (safety net)", tmdb_id)
             movie = self._sync(tmdb_id, language=language)
         return presenter.movie_detail(movie, lang_iso)
 
@@ -66,10 +60,6 @@ class MovieService:
         )
 
     # ------------ internals ------------
-
-    def _is_fresh(self, movie) -> bool:
-        ttl = timedelta(days=settings.movie_cache_ttl_days)
-        return movie.updated_at + ttl > datetime.now(timezone.utc)
 
     def _sync(self, tmdb_id: int, *, language: str):
         lang_iso = to_iso2(language)
