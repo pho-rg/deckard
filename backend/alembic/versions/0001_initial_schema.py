@@ -142,7 +142,7 @@ def upgrade() -> None:
     sa.Column('cast_order', sa.Integer(), server_default='0', nullable=False),
     sa.ForeignKeyConstraint(['movie_id'], ['movies.tmdb_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['person_id'], ['persons.tmdb_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('movie_id', 'person_id')
+    sa.PrimaryKeyConstraint('movie_id', 'person_id', 'cast_order')
     )
     op.create_table('movie_crew',
     sa.Column('movie_id', sa.Integer(), nullable=False),

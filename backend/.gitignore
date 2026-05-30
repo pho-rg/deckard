@@ -13,4 +13,5 @@ venv/
 htmlcov/
 .idea/
 .vscode/
-*.sqlite3
+*.sqlite3x
+.db_load/.env
