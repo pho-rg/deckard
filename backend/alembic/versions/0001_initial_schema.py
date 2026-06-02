@@ -76,23 +76,23 @@ def upgrade() -> None:
     op.create_table('persons',
     sa.Column('tmdb_id', sa.Integer(), autoincrement=False, nullable=False),
     sa.Column('imdb_id', sa.String(length=32), autoincrement=False, nullable=True),
-    sa.Column('birthday', sa.Date(), nullable=True),
-    sa.Column('deathday', sa.Date(), nullable=True),
+    sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('gender', sa.Integer(), nullable=True),
     sa.Column('known_for_department', sa.Text(), nullable=True),
     sa.Column('profile_path', sa.String(length=255), nullable=True),
     sa.PrimaryKeyConstraint('tmdb_id')
     )
 
-    op.create_table('person_content',
-    sa.Column('tmdb_id', sa.Integer(), autoincrement=False, nullable=False),
-    sa.Column('language_iso', sa.String(length=2), nullable=False),
-    sa.Column('biography', sa.Text(), nullable=True),
-    sa.Column('place_of_birth', sa.Text(), nullable=True),
-    sa.Column('name', sa.String(length=255), nullable=False),
-    sa.ForeignKeyConstraint(['tmdb_id'], ['persons.tmdb_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('tmdb_id', 'language_iso')
-    )
+    # Removed to save space on DB
+    # op.create_table('person_content',
+    # sa.Column('tmdb_id', sa.Integer(), autoincrement=False, nullable=False),
+    # sa.Column('language_iso', sa.String(length=2), nullable=False),
+    # sa.Column('biography', sa.Text(), nullable=True),
+    # sa.Column('place_of_birth', sa.Text(), nullable=True),
+    # sa.Column('name', sa.String(length=255), nullable=False),
+    # sa.ForeignKeyConstraint(['tmdb_id'], ['persons.tmdb_id'], ondelete='CASCADE'),
+    # sa.PrimaryKeyConstraint('tmdb_id', 'language_iso')
+    # )
 
     op.create_table('users',
     sa.Column('id', sa.UUID(), nullable=False),
@@ -217,7 +217,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_users_username'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
-    op.drop_table('person_content')
+    # op.drop_table('person_content')
     op.drop_table('persons')
     op.drop_table('movie_vector')
     op.drop_table('video')

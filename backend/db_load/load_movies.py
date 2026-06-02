@@ -8,15 +8,11 @@ Charge les fichiers raw_movie_data_*.jsonl en base PostgreSQL.
 Tables alimentées (dans l'ordre) :
   movies, movie_content, video,
   movie_genres,
-  persons (stub),
-  person_content (stub, fr+en, name only),
+  persons,
   movie_cast, movie_crew
-
-stub = ébauche de personne qui sera complétée par load_persons plus tard.
 
 Prérequis :
   - Les tables genres + genre_content sont déjà peuplées par load_genres.py.
-  - Lancer load_persons.py APRÈS pour enrichir les persons.
 
 Usage :
   DATABASE_URL=postgresql://user:pass@host/db python load_movies.py [--dir /path/to/shards]
@@ -180,11 +176,9 @@ def parse_movie_genres(data: dict) -> list[dict]:
     ]
 
 
-def parse_persons_stub(data: dict) -> tuple[list[dict], list[dict]]:
+def parse_persons(data: dict) -> list[dict]:
     """
-    Extrait les persons (cast + crew) pour créer des ébauches qui seront complétées par load_persons.
-    Retourne (persons_rows, person_content_rows).
-    person_content contient uniquement name (biography=None).
+    Extrait les persons (cast + crew) à partir des crédits du film.
     """
     seen: dict[int, dict] = {}  # tmdb_id -> row
     credits = data.get("credits", {})
@@ -193,42 +187,20 @@ def parse_persons_stub(data: dict) -> tuple[list[dict], list[dict]]:
         pid = member.get("id")
         if pid is None or pid in seen:
             continue
+            
+        # Récupération du name avec fallback sur original_name
+        name = member.get("name") or member.get("original_name") or ""
+        
         seen[pid] = {
             "tmdb_id": pid,
-            "imdb_id": None,
-            "birthday": None,
-            "deathday": None,
+            "imdb_id": None, # Non fourni dans les credits des films TMDB
+            "name": name,
             "gender": member.get("gender"),
             "known_for_department": member.get("known_for_department"),
             "profile_path": member.get("profile_path"),
         }
 
-    persons_rows = list(seen.values())
-
-    # 2 person_content créé : name en + fr (même valeur, on n'a que original_name ici)
-    content_rows = []
-    for pid, p in seen.items():
-        # On récupère le nom depuis cast ou crew
-        name = next(
-            (
-                m.get("name", "")
-                for m in credits.get("cast", []) + credits.get("crew", [])
-                if m.get("id") == pid
-            ),
-            "",
-        )
-        if not name:
-            continue
-        for lang in KEPT_LANGUAGES:
-            content_rows.append({
-                "tmdb_id": pid,
-                "language_iso": lang,
-                "biography": None,
-                "place_of_birth": None,
-                "name": name,
-            })
-
-    return persons_rows, content_rows
+    return list(seen.values())
 
 
 def parse_cast(data: dict) -> list[dict]:
@@ -295,7 +267,7 @@ def load(shards_dir: str) -> None:
 
         movies, movie_contents, videos = [], [], []
         movie_genres_rows = []
-        all_persons, all_person_contents = [], []
+        all_persons = []
         cast_rows, crew_rows = [], []
 
         with open(shard_path, encoding="utf-8") as f:
@@ -312,22 +284,16 @@ def load(shards_dir: str) -> None:
                 movie_contents.extend(parse_movie_contents(data))
                 videos.extend(parse_videos(data))
                 movie_genres_rows.extend(parse_movie_genres(data))
-                p_rows, pc_rows = parse_persons_stub(data)
-                all_persons.extend(p_rows)
-                all_person_contents.extend(pc_rows)
+                
+                all_persons.extend(parse_persons(data))
+                
                 cast_rows.extend(parse_cast(data))
                 crew_rows.extend(parse_crew(data))
 
         # Déduplications inter-films dans le shard
-        # persons : garder le dernier (load_persons enrichira de toute façon)
+        # persons : garder le dernier 
         persons_dedup: dict[int, dict] = {p["tmdb_id"]: p for p in all_persons}
         all_persons = list(persons_dedup.values())
-
-        # person_content : (tmdb_id, language_iso) unique
-        pc_dedup: dict[tuple, dict] = {
-            (p["tmdb_id"], p["language_iso"]): p for p in all_person_contents
-        }
-        all_person_contents = list(pc_dedup.values())
 
         with engine.begin() as conn:
             batch_upsert(
@@ -348,18 +314,14 @@ def load(shards_dir: str) -> None:
             )
             batch_insert_ignore(conn, "movie_genres", movie_genres_rows,
                                 conflict_cols=["movie_id", "genre_id"])
-            # persons : on ne met à jour que les champs non-null
+            
+            # persons : on met à jour le nom et les autres infos 
             batch_upsert(
                 conn, "persons", all_persons,
                 conflict_cols=["tmdb_id"],
-                update_cols=["gender", "known_for_department", "profile_path"],
+                update_cols=["name", "gender", "known_for_department", "profile_path"],
             )
-            # person_content : on n'écrase pas biography/place_of_birth si déjà remplis
-            batch_upsert(
-                conn, "person_content", all_person_contents,
-                conflict_cols=["tmdb_id", "language_iso"],
-                update_cols=["name"],  # name seulement, on ne touche pas biography
-            )
+            
             batch_upsert(
                 conn, "movie_cast", cast_rows,
                 conflict_cols=["movie_id", "person_id", "cast_order"],
@@ -371,7 +333,7 @@ def load(shards_dir: str) -> None:
                 update_cols=["department"],
             )
 
-        print(f"     {len(movies)} films, {len(all_persons)} persons (stubs), "
+        print(f"     {len(movies)} films, {len(all_persons)} persons, "
               f"{len(cast_rows)} cast, {len(crew_rows)} crew")
 
     print("Chargement movies terminé.")
