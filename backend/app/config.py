@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     jwt_secret: str
     jwt_algorithm: str = "HS256"
-    access_token_ttl_minutes: int = 15
+    access_token_ttl_minutes: int = 60
     refresh_token_ttl_days: int = 30
 
     tmdb_api_key: str
