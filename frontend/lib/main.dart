@@ -1,6 +1,6 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'screens/main_navigation.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const DeckardApp());
@@ -14,7 +14,7 @@ class DeckardApp extends StatelessWidget {
     return MaterialApp(
       title: 'Deckard',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
+      theme: AppTheme.darkTheme,
       home: const MainNavigation(),
     );
   }

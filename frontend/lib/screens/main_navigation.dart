@@ -42,8 +42,6 @@ class _MainNavigationState extends State<MainNavigation> {
         },
         // 'fixed' est requis pour afficher plus de 3 onglets proprement avec leurs labels
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.video_library_outlined),

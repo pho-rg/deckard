@@ -16,7 +16,7 @@ api_key = os.environ["TMDB_API_KEY"]
 
 def store_ids():
     person_array = []
-     target_path = next(script_dir.glob("person_ids_*.json"))
+    target_path = next(script_dir.glob("person_ids_*.json"))
     with open(target_path, encoding="utf-8") as f:
         for line in f:
             person_array.append(json.loads(line))
