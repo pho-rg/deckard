@@ -58,6 +58,11 @@ class Crew {
 
   factory Crew.fromJson(Map<String, dynamic> json) => _$CrewFromJson(json);
   Map<String, dynamic> toJson() => _$CrewToJson(this);
+
+  String get profileUrl {
+    if (profilePath == null || profilePath!.isEmpty) return '';
+    return 'https://image.tmdb.org/t/p/w185$profilePath';
+  }
 }
 
 @JsonSerializable()

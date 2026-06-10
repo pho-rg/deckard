@@ -4,6 +4,7 @@ import '../models/movie.dart';
 import '../services/movie_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/movie_card.dart';
+import 'movie_detail_screen.dart';
 
 enum SortOption { releaseDate, popularity }
 
@@ -236,7 +237,12 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
             return MovieCard(
               movie: _movies[index],
               onTap: () {
-                // print('Tapped on ${_movies[index].title}');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MovieDetailScreen(movie: _movies[index]),
+                  ),
+                );
               },
             );
           },
@@ -264,7 +270,12 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                       child: MovieCard(
                         movie: movie,
                         onTap: () {
-                          // print('Tapped on ${movie.title}');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MovieDetailScreen(movie: movie),
+                            ),
+                          );
                         },
                       ),
                     ),
@@ -272,9 +283,9 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                     Text(
                       movie.title.toUpperCase(),
                       style: const TextStyle(
-                        fontSize: 22,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                        letterSpacing: 1.1,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,

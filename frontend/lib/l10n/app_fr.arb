@@ -23,5 +23,39 @@
   "noMoviesAvailable": "Aucun film disponible",
   "releaseDate": "Date de sortie",
   "popularity": "Popularité",
-  "languageSelection": "Choisir la langue"
+  "languageSelection": "Choisir la langue",
+  "cast": "CASTING",
+  "crew": "ÉQUIPE",
+  "genres": "GENRES",
+  "details": "DÉTAILS",
+  "reviews": "AVIS",
+  "similarMovies": "FILMS SIMILAIRES",
+  "tagline": "Slogan",
+  "runtime": "Durée",
+  "minutes": "{min} min",
+  "@minutes": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "originalTitle": "Titre original",
+  "status": "Statut",
+  "budget": "Budget",
+  "revenue": "Recettes",
+  "trailer": "BANDE-ANNONCE",
+  "ratings": "NOTES",
+  "logYourWatch": "Noter ce film",
+  "editYourRating": "Modifier votre note",
+  "watched": "Vu",
+  "liked": "Favori",
+  "watch": "Vu",
+  "like": "Favori",
+  "rate": "Noter",
+  "watchlistAdd": "Ma liste",
+  "you": "VOUS",
+  "writeReview": "Écrire un avis...",
+  "submit": "Publier",
+  "allReviews": "TOUS LES AVIS"
 }

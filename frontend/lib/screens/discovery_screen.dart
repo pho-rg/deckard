@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:deckard/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -7,6 +6,8 @@ import '../models/movie.dart';
 import '../services/movie_service.dart';
 import '../widgets/movie_card.dart';
 import '../providers/locale_provider.dart';
+import '../theme/app_theme.dart';
+import 'movie_detail_screen.dart';
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({super.key});
@@ -141,7 +142,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             movie: movie,
             width: cardWidth,
             onTap: () {
-              // TODO: Navigate to Detail
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MovieDetailScreen(movie: movie),
+                ),
+              );
             },
           ),
           const SizedBox(width: 16),
@@ -244,7 +250,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   movie: movies[index],
                   width: cardWidth,
                   onTap: () {
-                    // TODO: Navigate to Detail
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MovieDetailScreen(movie: movies[index]),
+                      ),
+                    );
                   },
                 ),
               );

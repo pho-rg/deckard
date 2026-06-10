@@ -23,5 +23,39 @@
   "noMoviesAvailable": "No movies available",
   "releaseDate": "Release Date",
   "popularity": "Popularity",
-  "languageSelection": "Select Language"
+  "languageSelection": "Select Language",
+  "cast": "CAST",
+  "crew": "CREW",
+  "genres": "GENRES",
+  "details": "DETAILS",
+  "reviews": "REVIEWS",
+  "similarMovies": "SIMILAR MOVIES",
+  "tagline": "Tagline",
+  "runtime": "Runtime",
+  "minutes": "{min} min",
+  "@minutes": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "originalTitle": "Original Title",
+  "status": "Status",
+  "budget": "Budget",
+  "revenue": "Revenue",
+  "trailer": "TRAILER",
+  "ratings": "RATINGS",
+  "logYourWatch": "Log this film",
+  "editYourRating": "Edit your log",
+  "watched": "Watched",
+  "liked": "Liked",
+  "watch": "Watch",
+  "like": "Like",
+  "rate": "Rate",
+  "watchlistAdd": "Watchlist",
+  "you": "YOU",
+  "writeReview": "Write a review...",
+  "submit": "Submit",
+  "allReviews": "ALL REVIEWS"
 }
