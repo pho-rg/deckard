@@ -1,0 +1,27 @@
+{
+  "@@locale": "en",
+  "appTitle": "DECKARD",
+  "watchlist": "WATCHLIST",
+  "search": "SEARCH",
+  "friends": "FRIENDS",
+  "profile": "PROFILE",
+  "discover": "DISCOVER",
+  "trending": "TRENDING",
+  "forYou": "FOR YOU",
+  "moviesCount": "{count} MOVIES",
+  "@moviesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "extendShelf": "Extend your movie shelf",
+  "viewRecommendations": "View recommendations",
+  "directedBy": "DIRECTED BY",
+  "withActors": "WITH",
+  "noMoviesAvailable": "No movies available",
+  "releaseDate": "Release Date",
+  "popularity": "Popularity",
+  "languageSelection": "Select Language"
+}

@@ -1,0 +1,27 @@
+{
+  "@@locale": "fr",
+  "appTitle": "DECKARD",
+  "watchlist": "MA LISTE",
+  "search": "RECHERCHE",
+  "friends": "AMIS",
+  "profile": "PROFIL",
+  "discover": "À DÉCOUVRIR",
+  "trending": "TENDANCES",
+  "forYou": "POUR VOUS",
+  "moviesCount": "{count} FILMS",
+  "@moviesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "extendShelf": "Agrandissez votre vidéothèque",
+  "viewRecommendations": "Voir les recommandations",
+  "directedBy": "RÉALISÉ PAR",
+  "withActors": "AVEC",
+  "noMoviesAvailable": "Aucun film disponible",
+  "releaseDate": "Date de sortie",
+  "popularity": "Popularité",
+  "languageSelection": "Choisir la langue"
+}

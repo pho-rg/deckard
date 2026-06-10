@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/theme/app_theme.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/movie.dart';
 import '../services/movie_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/movie_card.dart';
 
 enum SortOption { releaseDate, popularity }
@@ -70,11 +71,13 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: _currentView == ViewMode.oneByOne
           ? null
           : AppBar(
-              title: const Text('WATCHLIST'),
+              title: Text(l10n.watchlist),
               actions: [
                 PopupMenuButton<SortOption>(
                   icon: const Icon(Icons.sort),
@@ -83,13 +86,13 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                     _sortMovies();
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<SortOption>>[
-                    const PopupMenuItem<SortOption>(
+                    PopupMenuItem<SortOption>(
                       value: SortOption.releaseDate,
-                      child: Text('Release Date'),
+                      child: Text(l10n.releaseDate),
                     ),
-                    const PopupMenuItem<SortOption>(
+                    PopupMenuItem<SortOption>(
                       value: SortOption.popularity,
-                      child: Text('Popularity'),
+                      child: Text(l10n.popularity),
                     ),
                   ],
                 ),
@@ -107,7 +110,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (_movies.isEmpty) {
-            return const Center(child: Text('Your watchlist is empty'));
+            return Center(child: Text(l10n.noMoviesAvailable));
           }
 
           if (_currentView == ViewMode.oneByOne) {
@@ -118,20 +121,22 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
             slivers: [
               // AI Recommendations Banner
               SliverToBoxAdapter(
-                child: _buildAIRecBanner(),
+                child: _buildAIRecBanner(l10n),
               ),
               // Movie count display
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(8.0, 16.0, 8.0, 8.0),
-                  child: Text(
-                    '${_movies.length} MOVIES',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      l10n.moviesCount(_movies.length),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.1,
+                      ),
                     ),
                   ),
                 ),
@@ -145,7 +150,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
     );
   }
 
-  Widget _buildAIRecBanner() {
+  Widget _buildAIRecBanner(AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.all(8.0),
       padding: const EdgeInsets.all(20.0),
@@ -160,9 +165,9 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Extend your movie shelf',
-                  style: TextStyle(
+                Text(
+                  l10n.extendShelf,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -174,9 +179,9 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                     // TODO: Open Recommendations Page
                   },
                   icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.black),
-                  label: const Text(
-                    'View recommendations',
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                  label: Text(
+                    l10n.viewRecommendations,
+                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.secondaryPurple,
@@ -279,7 +284,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.star, color: Color(0xFF00FF94), size: 20),
+                        const Icon(Icons.star, color: AppTheme.secondaryPurple, size: 20),
                         const SizedBox(width: 4),
                         Text(
                           '${movie.voteAverage ?? 0.0}',

@@ -1,5 +1,6 @@
 // lib/screens/main_navigation.dart
 import 'package:flutter/material.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'watchlist_screen.dart';
 import 'search_screen.dart';
 import 'discovery_screen.dart';
@@ -14,7 +15,8 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  int _currentIndex = 0;
+  // Discover par défaut
+  int _currentIndex = 2;
 
   // Liste des écrans dans l'ordre des onglets
   final List<Widget> _screens = const [
@@ -27,6 +29,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       // IndexedStack conserve l'état (scroll, inputs) de chaque écran en mémoire
       body: IndexedStack(
@@ -40,32 +44,31 @@ class _MainNavigationState extends State<MainNavigation> {
             _currentIndex = index;
           });
         },
-        // 'fixed' est requis pour afficher plus de 3 onglets proprement avec leurs labels
         type: BottomNavigationBarType.fixed,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.video_library_outlined),
-            activeIcon: Icon(Icons.video_library),
-            label: 'Watchlist',
+            icon: const Icon(Icons.video_library_outlined),
+            activeIcon: const Icon(Icons.video_library),
+            label: l10n.watchlist,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
+            icon: const Icon(Icons.search),
+            label: l10n.search,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.movie_creation_outlined),
-            activeIcon: Icon(Icons.movie_creation),
-            label: 'Discovery',
+            icon: const Icon(Icons.movie_creation_outlined),
+            activeIcon: const Icon(Icons.movie_creation),
+            label: l10n.discover,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline),
-            activeIcon: Icon(Icons.people),
-            label: 'Friends',
+            icon: const Icon(Icons.people_outline),
+            activeIcon: const Icon(Icons.people),
+            label: l10n.friends,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            activeIcon: const Icon(Icons.person),
+            label: l10n.profile,
           ),
         ],
       ),
