@@ -57,5 +57,26 @@
   "you": "VOUS",
   "writeReview": "Écrire un avis...",
   "submit": "Publier",
-  "allReviews": "TOUS LES AVIS"
+  "allReviews": "TOUS LES AVIS",
+
+  "favoritesTab": "FAVORIS",
+  "watchedTab": "VUS",
+  "ratingsTab": "NOTES",
+  "memberSince": "Membre depuis",
+  "editProfile": "Modifier le profil",
+  "save": "Enregistrer",
+  "noFavorites": "Aucun favori pour l'instant",
+  "noWatched": "Aucun film vu pour l'instant",
+  "noRatingsYet": "Aucune note pour l'instant",
+  "languageLabel": "LANGUE",
+  "usernameLabel": "NOM D'UTILISATEUR",
+  "emailLabel": "ADRESSE E-MAIL",
+  "changePasswordLabel": "CHANGER LE MOT DE PASSE",
+  "changePasswordHint": "Laissez vide pour conserver votre mot de passe actuel.",
+  "currentPasswordLabel": "Mot de passe actuel",
+  "newPasswordLabel": "Nouveau mot de passe",
+  "confirmPasswordLabel": "Confirmer le nouveau mot de passe",
+  "passwordMismatch": "Les mots de passe ne correspondent pas",
+  "profileNotLoggedIn": "Connectez-vous pour voir votre profil",
+  "retry": "Réessayer"
 }

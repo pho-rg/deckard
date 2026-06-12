@@ -57,5 +57,26 @@
   "you": "YOU",
   "writeReview": "Write a review...",
   "submit": "Submit",
-  "allReviews": "ALL REVIEWS"
+  "allReviews": "ALL REVIEWS",
+
+  "favoritesTab": "FAVORITES",
+  "watchedTab": "WATCHED",
+  "ratingsTab": "RATINGS",
+  "memberSince": "Member since",
+  "editProfile": "Edit profile",
+  "save": "Save",
+  "noFavorites": "No favorites yet",
+  "noWatched": "No watched films yet",
+  "noRatingsYet": "No ratings yet",
+  "languageLabel": "LANGUAGE",
+  "usernameLabel": "USERNAME",
+  "emailLabel": "EMAIL ADDRESS",
+  "changePasswordLabel": "CHANGE PASSWORD",
+  "changePasswordHint": "Leave blank to keep your current password.",
+  "currentPasswordLabel": "Current password",
+  "newPasswordLabel": "New password",
+  "confirmPasswordLabel": "Confirm new password",
+  "passwordMismatch": "Passwords don't match",
+  "profileNotLoggedIn": "Sign in to see your profile",
+  "retry": "Retry"
 }
