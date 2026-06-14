@@ -3,6 +3,7 @@
   "appTitle": "DECKARD",
   "watchlist": "MA LISTE",
   "search": "RECHERCHE",
+  "searchHint": "Recherche",
   "friends": "AMIS",
   "profile": "PROFIL",
   "discover": "À DÉCOUVRIR",
@@ -58,7 +59,14 @@
   "writeReview": "Écrire un avis...",
   "submit": "Publier",
   "allReviews": "TOUS LES AVIS",
-
+  "recentSearches": "RECHERCHES RÉCENTES",
+  "films": "Films",
+  "castCrew": "Casting ou Équipe",
+  "noResults": "Aucun résultat trouvé",
+  "clearHistory": "Effacer l'historique",
+  "directedByLower": "réalisé par",
+  "withActorsLower": "avec",
+  "newReleases": "Nouveautés",
   "favoritesTab": "FAVORIS",
   "watchedTab": "VUS",
   "ratingsTab": "NOTES",
@@ -79,7 +87,6 @@
   "passwordMismatch": "Les mots de passe ne correspondent pas",
   "profileNotLoggedIn": "Connectez-vous pour voir votre profil",
   "retry": "Réessayer",
-
   "watchWithFriends": "Regarder avec des amis",
   "startAMatch": "Créer un match",
   "joinAMatch": "Rejoindre un match",
@@ -108,6 +115,6 @@
   "unanimousMovies": "VOUS ÊTES TOUS D'ACCORD",
   "unanimousMoviesSubtitle": "Tout le groupe a sélectionné ces films.",
   "noMatchFound": "Pas de match cette fois !",
-  "noMatchFoundSubtitle": "Votre groupe n'a pas réussi à se mettre d'accord. Réessayez avec d'autres choix.",
+  "noMatchFoundSubtitle": "Votre groupe n'a pas réussi à se mettre d'accord. Réessayer avec d'autres choix.",
   "restartMatch": "Recommencer un match"
 }
