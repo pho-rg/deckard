@@ -4,43 +4,36 @@ import 'api_service.dart';
 
 class AuthService {
   static const _storage = FlutterSecureStorage();
-  static const _tokenKey = 'auth_token';
+  static const _accessKey = 'auth_token';
+  static const _refreshKey = 'refresh_token';
 
-  /// Log in with email + password.
-  /// Mock: accepts any non-empty credentials and stores a fake token.
-  /// TODO: replace body with real API call:
-  ///   final data = await ApiService().post('/auth/login', {'email': email, 'password': password});
-  ///   final token = data['access_token'] as String;
+  static final _api = ApiService();
+
+  /// Connexion email + mot de passe.
+  /// POST /auth/login → { access_token, refresh_token, token_type }
   static Future<void> login(String email, String password) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    if (email.trim().isEmpty || password.isEmpty) {
-      throw Exception('Email et mot de passe requis.');
-    }
-
-    // Mock token — replace with data['access_token'] from real API
-    const mockToken = 'mock-token-abc123';
-    await _storage.write(key: _tokenKey, value: mockToken);
-    ApiService.token = mockToken;
+    final data = await _api.post('/auth/login', {
+      'email': email.trim(),
+      'password': password,
+    });
+    await _persistTokens(
+      data['access_token'] as String,
+      data['refresh_token'] as String,
+    );
   }
 
-  /// Register with email + username + password.
-  /// Mock: accepts any valid inputs and stores a fake token.
-  /// TODO: replace body with real API call:
-  ///   final data = await ApiService().post('/auth/register', {'email': email, 'username': username, 'password': password});
-  ///   final token = data['access_token'] as String;
+  /// Inscription email + username + mot de passe.
+  /// POST /auth/register → UserOut (PAS de token), donc on enchaîne un login
+  /// pour récupérer les tokens et authentifier l'onboarding qui suit.
   static Future<void> register(
       String email, String username, String password) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    if (email.trim().isEmpty || username.trim().isEmpty || password.isEmpty) {
-      throw Exception('Tous les champs sont requis.');
-    }
-
-    // Mock token — replace with data['access_token'] from real API
-    const mockToken = 'mock-token-abc123';
-    await _storage.write(key: _tokenKey, value: mockToken);
-    ApiService.token = mockToken;
+    await _api.post('/auth/register', {
+      'email': email.trim(),
+      'username': username.trim(),
+      'password': password,
+    });
+    // register ne renvoie pas de token → on se connecte immédiatement.
+    await login(email, password);
   }
 
   /// Save onboarding movie picks (called after register).
@@ -53,19 +46,33 @@ class AuthService {
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
-  /// Clear the stored token and reset the API service.
+  /// Efface les tokens et réinitialise l'API.
   static Future<void> logout() async {
-    await _storage.delete(key: _tokenKey);
+    final refresh = await _storage.read(key: _refreshKey);
+    if (refresh != null) {
+      // best-effort : invalide le refresh token côté serveur
+      try {
+        await _api.post('/auth/logout', {'refresh_token': refresh});
+      } catch (_) {/* on déconnecte localement quoi qu'il arrive */}
+    }
+    await _storage.delete(key: _accessKey);
+    await _storage.delete(key: _refreshKey);
     ApiService.token = null;
   }
 
-  /// Called on app start. Returns true if a valid token was found.
+  /// Appelé au démarrage. Restaure le token s'il existe.
   static Future<bool> tryRestoreToken() async {
-    final token = await _storage.read(key: _tokenKey);
+    final token = await _storage.read(key: _accessKey);
     if (token != null) {
       ApiService.token = token;
       return true;
     }
     return false;
+  }
+
+  static Future<void> _persistTokens(String access, String refresh) async {
+    await _storage.write(key: _accessKey, value: access);
+    await _storage.write(key: _refreshKey, value: refresh);
+    ApiService.token = access;
   }
 }
