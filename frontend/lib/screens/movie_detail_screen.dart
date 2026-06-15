@@ -7,6 +7,9 @@ import '../models/movie.dart';
 import '../widgets/movie_card.dart';
 import '../theme/app_theme.dart';
 import '../services/movie_service.dart';
+import 'all_reviews_screen.dart';
+import 'person_screen.dart';
+import 'profile_screen.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final Movie movie;
@@ -94,10 +97,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final director = widget.movie.crew?.firstWhere(
+    final directorCrew = widget.movie.crew?.firstWhere(
       (c) => c.job == 'Director',
       orElse: () => Crew(id: 0, name: 'Unknown', job: '', department: ''),
-    ).name ?? 'Unknown';
+    );
+    final director = directorCrew?.name ?? 'Unknown';
 
     return Scaffold(
       body: CustomScrollView(
@@ -108,7 +112,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(l10n, director),
+                _buildHeader(l10n, director, directorCrew),
                 _buildSectionDivider(),
                 _buildRatingsSection(l10n),
                 _buildUserActionSection(l10n),
@@ -181,7 +185,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
     );
   }
 
-  Widget _buildHeader(AppLocalizations l10n, String director) {
+  Widget _buildHeader(
+      AppLocalizations l10n, String director, Crew? directorCrew) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -195,12 +200,50 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
               children: [
                 Text(
                   widget.movie.title.toUpperCase(),
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '${widget.movie.releaseDate?.split('-').first ?? 'N/A'} • $director',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                Row(
+                  children: [
+                    Text(
+                      '${widget.movie.releaseDate?.split('-').first ?? 'N/A'} • ',
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 14),
+                    ),
+                    if (directorCrew != null && directorCrew.id != 0)
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PersonScreen(
+                              personId: directorCrew.id,
+                              name: directorCrew.name,
+                              role: directorCrew.job,
+                              profileUrl: directorCrew.profileUrl.isNotEmpty
+                                  ? directorCrew.profileUrl
+                                  : null,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          director,
+                          style: const TextStyle(
+                            color: AppTheme.secondaryPurple,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        director,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 14),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
@@ -581,7 +624,19 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       itemBuilder: (context, index) {
         final member = cast[index];
         return InkWell(
-          onTap: () {},
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PersonScreen(
+                personId: member.id,
+                name: member.name,
+                role: member.character,
+                profileUrl: member.profilePath != null
+                    ? member.profileUrl
+                    : null,
+              ),
+            ),
+          ),
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
@@ -645,7 +700,19 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       itemBuilder: (context, index) {
         final member = crew[index];
         return InkWell(
-          onTap: () {},
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PersonScreen(
+                personId: member.id,
+                name: member.name,
+                role: member.job,
+                profileUrl: member.profileUrl.isNotEmpty
+                    ? member.profileUrl
+                    : null,
+              ),
+            ),
+          ),
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
@@ -768,11 +835,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
 
   Widget _buildReviewsSection(AppLocalizations l10n) {
     final List<Map<String, dynamic>> mockReviews = [
-      {'user': 'Alex', 'rating': 4.5, 'text': 'A masterpiece of modern cinema. The pacing is perfect.'},
-      {'user': 'Sam', 'rating': 3.0, 'text': 'Interesting concept, but the execution felt a bit rushed.'},
-      {'user': 'Jordan', 'rating': 5.0, 'text': 'I could watch this every day. The acting is phenomenal.'},
-      {'user': 'Taylor', 'rating': 4.0, 'text': 'Great visuals and sound design. Recommended.'},
-      {'user': 'Morgan', 'rating': 2.5, 'text': 'Not my cup of tea. Too slow for my taste.'},
+      {'user': 'Alex',   'userId': 'user-alex',   'rating': 4.5, 'date': 'June 10, 2026', 'text': 'A masterpiece of modern cinema. The pacing is perfect.'},
+      {'user': 'Sam',    'userId': 'user-sam',    'rating': 3.0, 'date': 'June 8, 2026',  'text': 'Interesting concept, but the execution felt a bit rushed.'},
+      {'user': 'Jordan', 'userId': 'user-jordan', 'rating': 5.0, 'date': 'June 5, 2026',  'text': 'I could watch this every day. The acting is phenomenal.'},
+      {'user': 'Taylor', 'userId': 'user-taylor', 'rating': 4.0, 'date': 'May 30, 2026',  'text': 'Great visuals and sound design. Recommended.'},
+      {'user': 'Morgan', 'userId': 'user-morgan', 'rating': 2.5, 'date': 'May 25, 2026',  'text': 'Not my cup of tea. Too slow for my taste.'},
     ];
 
     return Padding(
@@ -785,10 +852,18 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white38, letterSpacing: 1.2),
           ),
           const SizedBox(height: 25),
-          ...mockReviews.take(3).map((r) => _reviewItem(r['user'], r['rating'], r['text'])),
+          ...mockReviews.take(3).map((r) => _reviewItem(r['user'], r['userId'], r['rating'], r['text'])),
           Center(
             child: TextButton(
-              onPressed: () {},
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AllReviewsScreen(
+                    movie: widget.movie,
+                    reviews: mockReviews,
+                  ),
+                ),
+              ),
               child: Text(l10n.allReviews, style: const TextStyle(color: AppTheme.secondaryPurple, fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ),
@@ -797,7 +872,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
     );
   }
 
-  Widget _reviewItem(String user, double rating, String text) {
+  Widget _reviewItem(String user, String? userId, double rating, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: Column(
@@ -805,13 +880,44 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
         children: [
           Row(
             children: [
-              const CircleAvatar(
-                backgroundColor: Colors.white10,
-                radius: 10,
-                child: Icon(Icons.person, color: Colors.white10, size: 12),
+              GestureDetector(
+                onTap: userId != null
+                    ? () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProfileScreen(
+                              userId: userId,
+                              initialUsername: user,
+                            ),
+                          ),
+                        )
+                    : null,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppTheme.surface,
+                      radius: 10,
+                      child: Text(
+                        user.isNotEmpty ? user[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                            color: AppTheme.secondaryPurple,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 9),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      user,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: userId != null ? AppTheme.secondaryPurple : Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 8),
-              Text(user, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)),
               const Spacer(),
               Row(children: List.generate(5, (i) => Icon(Icons.star, size: 12, color: i < rating ? AppTheme.secondaryPurple : Colors.white10))),
             ],

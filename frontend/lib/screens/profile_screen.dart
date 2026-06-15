@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../models/profile_models.dart';
+import '../services/auth_service.dart';
+import '../services/movie_service.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
+import 'login_screen.dart';
+import 'movie_detail_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data bundle loaded once for the whole screen
@@ -103,6 +107,41 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   void _refresh() => setState(() => _dataFuture = _load());
 
+  Future<void> _confirmLogout(
+      BuildContext context, AppLocalizations l10n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: Text(l10n.logOut,
+            style: const TextStyle(color: AppTheme.textMain)),
+        content: Text(l10n.logOutConfirm,
+            style: const TextStyle(color: AppTheme.textDim)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel,
+                style: const TextStyle(color: AppTheme.textDim)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent),
+            child: Text(l10n.logOut),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await AuthService.logout();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -157,12 +196,18 @@ class _ProfileScreenState extends State<ProfileScreen>
         title: Text(data.user.username.toUpperCase()),
         centerTitle: true,
         actions: [
-          if (widget.isOwnProfile)
+          if (widget.isOwnProfile) ...[
             IconButton(
               icon: const Icon(Icons.edit_outlined),
               tooltip: l10n.editProfile,
               onPressed: () => _showEditSheet(context, l10n, data.user),
             ),
+            IconButton(
+              icon: const Icon(Icons.logout, size: 20),
+              tooltip: l10n.logOut,
+              onPressed: () => _confirmLogout(context, l10n),
+            ),
+          ],
         ],
       ),
       body: Column(
@@ -423,9 +468,20 @@ class _PosterTile extends StatelessWidget {
       image = _fallback();
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: image,
+    return GestureDetector(
+      onTap: () async {
+        final full = await MovieService.getById(movie.tmdbId);
+        if (full != null && context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: full)),
+          );
+        }
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: image,
+      ),
     );
   }
 
@@ -478,9 +534,19 @@ class _RatingTile extends StatelessWidget {
     final movie = rating.movie;
     final posterUrl = movie.posterUrl;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
+    return GestureDetector(
+      onTap: () async {
+        final full = await MovieService.getById(movie.tmdbId);
+        if (full != null && context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: full)),
+          );
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Poster thumbnail
@@ -548,6 +614,7 @@ class _RatingTile extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

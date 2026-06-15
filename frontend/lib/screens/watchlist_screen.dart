@@ -5,6 +5,7 @@ import '../services/movie_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/movie_card.dart';
 import 'movie_detail_screen.dart';
+import 'recommendations_screen.dart';
 
 enum SortOption { releaseDate, popularity }
 
@@ -176,9 +177,11 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Open Recommendations Page
-                  },
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const RecommendationsScreen()),
+                  ),
                   icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.black),
                   label: Text(
                     l10n.viewRecommendations,

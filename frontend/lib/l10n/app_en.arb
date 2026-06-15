@@ -54,7 +54,8 @@
   "watch": "Watch",
   "like": "Like",
   "rate": "Rate",
-  "watchlistAdd": "Watchlist",
+  "watchlistAdd": "Add to Watchlist",
+  "removeWatchlist": "Remove from Watchlist",
   "you": "YOU",
   "writeReview": "Write a review...",
   "submit": "Submit",
@@ -116,5 +117,48 @@
   "unanimousMoviesSubtitle": "Everyone in the group selected these films.",
   "noMatchFound": "No match this time!",
   "noMatchFoundSubtitle": "Your group couldn't agree on a film. Try again with different choices.",
-  "restartMatch": "Start a new match"
+  "restartMatch": "Start a new match",
+
+  "loginSubtitle": "Discover films. Together.",
+  "passwordLabel": "PASSWORD",
+  "loginButton": "Log in",
+  "fieldRequired": "This field is required",
+  "invalidEmail": "Enter a valid email address",
+  "logOut": "Log out",
+  "logOutConfirm": "Are you sure you want to log out?",
+  "cancel": "Cancel",
+
+  "loginTab": "Log in",
+  "registerTab": "Sign up",
+  "registerButton": "Create account",
+  "usernameTooShort": "At least 3 characters",
+  "passwordTooShort": "At least 8 characters",
+
+  "onboardingTitle": "What films do you love?",
+  "onboardingSubtitle": "Pick 1 to 10 films to personalise your experience.",
+  "onboardingContinue": "Continue",
+  "onboardingCounter": "{count} / {max} selected",
+  "filmography": "Filmography",
+  "biography": "Biography",
+  "noFilmography": "No films found in our catalogue.",
+  "noReviewsYet": "No reviews yet.",
+  "movieRecommendations": "Movie Recommendations",
+  "deckardAi": "Deckard AI",
+  "basedOnYourTastes": "based on your tastes",
+  "addFilters": "Add filters",
+  "filterTitle": "Filters",
+  "clearFilters": "Clear",
+  "periodFilter": "PERIOD",
+  "genreFilter": "GENRES",
+  "applyFilters": "Apply",
+  "noRecommendationsFound": "No recommendations match your filters.",
+  "addedToWatchlist": "added to your watchlist.",
+  "scanQrCode": "Scan a QR code",
+  "scanQrHint": "Point the camera at the match QR code to join",
+  "@onboardingCounter": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  }
 }

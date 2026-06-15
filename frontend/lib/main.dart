@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'l10n/generated/app_localizations.dart';
+import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
+import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
 import 'providers/locale_provider.dart';
 
@@ -39,7 +41,30 @@ class DeckardApp extends StatelessWidget {
         Locale('en'),
         Locale('fr'),
       ],
-      home: const MainNavigation(),
+      home: const AuthGate(),
+    );
+  }
+}
+
+/// Vérifie le token au démarrage.
+/// → token trouvé : MainNavigation directement
+/// → pas de token : LoginScreen (accepte n'importe quels identifiants pour l'instant)
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: AuthService.tryRestoreToken(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final isLoggedIn = snapshot.data ?? false;
+        return isLoggedIn ? const MainNavigation() : const LoginScreen();
+      },
     );
   }
 }
