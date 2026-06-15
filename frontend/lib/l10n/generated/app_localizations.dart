@@ -341,8 +341,14 @@ abstract class AppLocalizations {
   /// No description provided for @watchlistAdd.
   ///
   /// In en, this message translates to:
-  /// **'Watchlist'**
+  /// **'Add to Watchlist'**
   String get watchlistAdd;
+
+  /// No description provided for @removeWatchlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Watchlist'**
+  String get removeWatchlist;
 
   /// No description provided for @you.
   ///
@@ -715,6 +721,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start a new match'**
   String get restartMatch;
+
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover films. Together.'**
+  String get loginSubtitle;
+
+  /// No description provided for @passwordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'PASSWORD'**
+  String get passwordLabel;
+
+  /// No description provided for @loginButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in'**
+  String get loginButton;
+
+  /// No description provided for @fieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required'**
+  String get fieldRequired;
+
+  /// No description provided for @invalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address'**
+  String get invalidEmail;
+
+  /// No description provided for @logOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get logOut;
+
+  /// No description provided for @logOutConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out?'**
+  String get logOutConfirm;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @loginTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in'**
+  String get loginTab;
+
+  /// No description provided for @registerTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up'**
+  String get registerTab;
+
+  /// No description provided for @registerButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get registerButton;
+
+  /// No description provided for @usernameTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 3 characters'**
+  String get usernameTooShort;
+
+  /// No description provided for @passwordTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 8 characters'**
+  String get passwordTooShort;
+
+  /// No description provided for @onboardingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What films do you love?'**
+  String get onboardingTitle;
+
+  /// No description provided for @onboardingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick 1 to 10 films to personalise your experience.'**
+  String get onboardingSubtitle;
+
+  /// No description provided for @onboardingContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get onboardingContinue;
+
+  /// No description provided for @onboardingCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} / {max} selected'**
+  String onboardingCounter(int count, int max);
+
+  /// No description provided for @filmography.
+  ///
+  /// In en, this message translates to:
+  /// **'Filmography'**
+  String get filmography;
+
+  /// No description provided for @biography.
+  ///
+  /// In en, this message translates to:
+  /// **'Biography'**
+  String get biography;
+
+  /// No description provided for @noFilmography.
+  ///
+  /// In en, this message translates to:
+  /// **'No films found in our catalogue.'**
+  String get noFilmography;
+
+  /// No description provided for @noReviewsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No reviews yet.'**
+  String get noReviewsYet;
+
+  /// No description provided for @movieRecommendations.
+  ///
+  /// In en, this message translates to:
+  /// **'Movie Recommendations'**
+  String get movieRecommendations;
+
+  /// No description provided for @deckardAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Deckard AI'**
+  String get deckardAi;
+
+  /// No description provided for @basedOnYourTastes.
+  ///
+  /// In en, this message translates to:
+  /// **'based on your tastes'**
+  String get basedOnYourTastes;
+
+  /// No description provided for @addFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Add filters'**
+  String get addFilters;
+
+  /// No description provided for @filterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get filterTitle;
+
+  /// No description provided for @clearFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearFilters;
+
+  /// No description provided for @periodFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'PERIOD'**
+  String get periodFilter;
+
+  /// No description provided for @genreFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'GENRES'**
+  String get genreFilter;
+
+  /// No description provided for @applyFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get applyFilters;
+
+  /// No description provided for @noRecommendationsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No recommendations match your filters.'**
+  String get noRecommendationsFound;
+
+  /// No description provided for @addedToWatchlist.
+  ///
+  /// In en, this message translates to:
+  /// **'added to your watchlist.'**
+  String get addedToWatchlist;
+
+  /// No description provided for @scanQrCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR code'**
+  String get scanQrCode;
+
+  /// No description provided for @scanQrHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at the match QR code to join'**
+  String get scanQrHint;
 }
 
 class _AppLocalizationsDelegate

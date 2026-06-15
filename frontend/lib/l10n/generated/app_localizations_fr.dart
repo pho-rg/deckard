@@ -133,7 +133,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get rate => 'Noter';
 
   @override
-  String get watchlistAdd => 'Ma liste';
+  String get watchlistAdd => 'Ajouter à la watchlist';
+
+  @override
+  String get removeWatchlist => 'Retirer de la watchlist';
 
   @override
   String get you => 'VOUS';
@@ -323,4 +326,111 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get restartMatch => 'Recommencer un match';
+
+  @override
+  String get loginSubtitle => 'Découvrez des films. Ensemble.';
+
+  @override
+  String get passwordLabel => 'MOT DE PASSE';
+
+  @override
+  String get loginButton => 'Se connecter';
+
+  @override
+  String get fieldRequired => 'Ce champ est requis';
+
+  @override
+  String get invalidEmail => 'Entrez une adresse e-mail valide';
+
+  @override
+  String get logOut => 'Se déconnecter';
+
+  @override
+  String get logOutConfirm => 'Voulez-vous vraiment vous déconnecter ?';
+
+  @override
+  String get cancel => 'Annuler';
+
+  @override
+  String get loginTab => 'Connexion';
+
+  @override
+  String get registerTab => 'Inscription';
+
+  @override
+  String get registerButton => 'Créer un compte';
+
+  @override
+  String get usernameTooShort => 'Au moins 3 caractères';
+
+  @override
+  String get passwordTooShort => 'Au moins 8 caractères';
+
+  @override
+  String get onboardingTitle => 'Quels films aimez-vous ?';
+
+  @override
+  String get onboardingSubtitle =>
+      'Choisissez 1 à 10 films pour personnaliser votre expérience.';
+
+  @override
+  String get onboardingContinue => 'Continuer';
+
+  @override
+  String onboardingCounter(int count, int max) {
+    return '$count / $max sélectionnés';
+  }
+
+  @override
+  String get filmography => 'Filmographie';
+
+  @override
+  String get biography => 'Biographie';
+
+  @override
+  String get noFilmography => 'Aucun film trouvé dans notre catalogue.';
+
+  @override
+  String get noReviewsYet => 'Aucun avis pour l\'instant.';
+
+  @override
+  String get movieRecommendations => 'Recommandations de films';
+
+  @override
+  String get deckardAi => 'Deckard IA';
+
+  @override
+  String get basedOnYourTastes => 'basé sur vos goûts';
+
+  @override
+  String get addFilters => 'Ajouter des filtres';
+
+  @override
+  String get filterTitle => 'Filtres';
+
+  @override
+  String get clearFilters => 'Effacer';
+
+  @override
+  String get periodFilter => 'PÉRIODE';
+
+  @override
+  String get genreFilter => 'GENRES';
+
+  @override
+  String get applyFilters => 'Appliquer';
+
+  @override
+  String get noRecommendationsFound =>
+      'Aucune recommandation ne correspond à vos filtres.';
+
+  @override
+  String get addedToWatchlist => 'ajouté à votre watchlist.';
+
+  @override
+  String get scanQrCode => 'Scanner un QR code';
+
+  @override
+  String get scanQrHint =>
+      'Pointez la caméra vers le QR code du match à rejoindre';
 }

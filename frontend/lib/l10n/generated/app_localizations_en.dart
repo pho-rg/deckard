@@ -133,7 +133,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rate => 'Rate';
 
   @override
-  String get watchlistAdd => 'Watchlist';
+  String get watchlistAdd => 'Add to Watchlist';
+
+  @override
+  String get removeWatchlist => 'Remove from Watchlist';
 
   @override
   String get you => 'YOU';
@@ -322,4 +325,109 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restartMatch => 'Start a new match';
+
+  @override
+  String get loginSubtitle => 'Discover films. Together.';
+
+  @override
+  String get passwordLabel => 'PASSWORD';
+
+  @override
+  String get loginButton => 'Log in';
+
+  @override
+  String get fieldRequired => 'This field is required';
+
+  @override
+  String get invalidEmail => 'Enter a valid email address';
+
+  @override
+  String get logOut => 'Log out';
+
+  @override
+  String get logOutConfirm => 'Are you sure you want to log out?';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get loginTab => 'Log in';
+
+  @override
+  String get registerTab => 'Sign up';
+
+  @override
+  String get registerButton => 'Create account';
+
+  @override
+  String get usernameTooShort => 'At least 3 characters';
+
+  @override
+  String get passwordTooShort => 'At least 8 characters';
+
+  @override
+  String get onboardingTitle => 'What films do you love?';
+
+  @override
+  String get onboardingSubtitle =>
+      'Pick 1 to 10 films to personalise your experience.';
+
+  @override
+  String get onboardingContinue => 'Continue';
+
+  @override
+  String onboardingCounter(int count, int max) {
+    return '$count / $max selected';
+  }
+
+  @override
+  String get filmography => 'Filmography';
+
+  @override
+  String get biography => 'Biography';
+
+  @override
+  String get noFilmography => 'No films found in our catalogue.';
+
+  @override
+  String get noReviewsYet => 'No reviews yet.';
+
+  @override
+  String get movieRecommendations => 'Movie Recommendations';
+
+  @override
+  String get deckardAi => 'Deckard AI';
+
+  @override
+  String get basedOnYourTastes => 'based on your tastes';
+
+  @override
+  String get addFilters => 'Add filters';
+
+  @override
+  String get filterTitle => 'Filters';
+
+  @override
+  String get clearFilters => 'Clear';
+
+  @override
+  String get periodFilter => 'PERIOD';
+
+  @override
+  String get genreFilter => 'GENRES';
+
+  @override
+  String get applyFilters => 'Apply';
+
+  @override
+  String get noRecommendationsFound => 'No recommendations match your filters.';
+
+  @override
+  String get addedToWatchlist => 'added to your watchlist.';
+
+  @override
+  String get scanQrCode => 'Scan a QR code';
+
+  @override
+  String get scanQrHint => 'Point the camera at the match QR code to join';
 }
