@@ -141,6 +141,17 @@
   "biography": "Biography",
   "noFilmography": "No films found in our catalogue.",
   "noReviewsYet": "No reviews yet.",
+  "movieRecommendations": "Movie Recommendations",
+  "deckardAi": "Deckard AI",
+  "basedOnYourTastes": "based on your tastes",
+  "addFilters": "Add filters",
+  "filterTitle": "Filters",
+  "clearFilters": "Clear",
+  "periodFilter": "PERIOD",
+  "genreFilter": "GENRES",
+  "applyFilters": "Apply",
+  "noRecommendationsFound": "No recommendations match your filters.",
+  "addedToWatchlist": "added to your watchlist.",
   "@onboardingCounter": {
     "placeholders": {
       "count": { "type": "int" },
