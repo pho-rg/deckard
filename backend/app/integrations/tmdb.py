@@ -70,6 +70,17 @@ class TMDBClient:
         # movie credits (cast & crew)
         return self._get(f"/movie/{tmdb_id}/credits", params={"language": language})
 
+    def get_movie_videos(
+        self, tmdb_id: int, *, language: str = "fr-FR"
+    ) -> dict[str, Any]:
+        # trailers / clips. include_video_language widens the net (FR trailers
+        # are often missing on TMDB) so we still get an English fallback key.
+        iso2 = language.split("-")[0].lower()
+        return self._get(
+            f"/movie/{tmdb_id}/videos",
+            params={"language": language, "include_video_language": f"{iso2},en"},
+        )
+
     def search_movies(
         self,
         query: str,

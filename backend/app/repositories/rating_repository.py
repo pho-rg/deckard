@@ -3,8 +3,9 @@ from datetime import datetime, timezone
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.models.movie import Movie
 from app.models.rating import Rating
 
 
@@ -20,19 +21,28 @@ class RatingRepository:
         )
 
     def upsert(
-        self, user_id: uuid.UUID, movie_id: int, half_stars: int
+        self,
+        user_id: uuid.UUID,
+        movie_id: int,
+        half_stars: int,
+        review: str | None = None,
     ) -> None:
         now = datetime.now(timezone.utc)
         stmt = pg_insert(Rating).values(
             user_id=user_id,
             movie_id=movie_id,
             rating=half_stars,
+            review=review,
             created_at=now,
             updated_at=now,
         )
         stmt = stmt.on_conflict_do_update(
             index_elements=[Rating.user_id, Rating.movie_id],
-            set_={"rating": stmt.excluded.rating, "updated_at": stmt.excluded.updated_at},
+            set_={
+                "rating": stmt.excluded.rating,
+                "review": stmt.excluded.review,
+                "updated_at": stmt.excluded.updated_at,
+            },
         )
         self.db.execute(stmt)
         self.db.commit()
@@ -52,5 +62,6 @@ class RatingRepository:
                 select(Rating)
                 .where(Rating.user_id == user_id)
                 .order_by(Rating.updated_at.desc())
+                .options(joinedload(Rating.movie).selectinload(Movie.contents))
             )
         )

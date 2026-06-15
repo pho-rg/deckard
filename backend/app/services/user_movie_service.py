@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+import uuid
+
 from sqlalchemy.orm import Session
 
 from app.integrations.tmdb import TMDBClient
-from app.models.movie import Movie
-from app.models.rating import Rating
 from app.models.user import User
 from app.repositories.rating_repository import RatingRepository
 from app.repositories.user_movie_flag import (
@@ -15,6 +14,10 @@ from app.repositories.user_movie_flag import (
     WatchedRepository,
     WatchlistRepository,
 )
+from app.schemas.movie import MovieCard
+from app.schemas.user_movie import RatingWithMovieOut
+from app.services import presenter
+from app.services.localization import to_iso2
 from app.services.movie_service import MovieService
 
 
@@ -52,11 +55,12 @@ class UserMovieService:
 
     # ------------ rating ------------
 
-    def set_rating(self, user: User, tmdb_id: int, stars: float) -> None:
+    def set_rating(
+        self, user: User, tmdb_id: int, stars: float, review: str | None = None
+    ) -> None:
         self._ensure_movie_cached(tmdb_id, user)
-        # Pydantic already enforced `multiple_of=0.5` & range 0..5; round defensively.
         half_stars = round(stars * 2)
-        self.ratings.upsert(user.id, tmdb_id, half_stars)
+        self.ratings.upsert(user.id, tmdb_id, half_stars, review)
 
     def remove_rating(self, user: User, tmdb_id: int) -> None:
         self.ratings.remove(user.id, tmdb_id)
@@ -70,38 +74,45 @@ class UserMovieService:
             "in_watchlist": self.watchlist.exists(user.id, tmdb_id),
             "is_watched": self.watched.exists(user.id, tmdb_id),
             "user_rating": (rating_row.rating / 2) if rating_row else None,
+            "user_review": rating_row.review if rating_row else None,
         }
 
-    def list_favorites(self, user: User) -> list[Movie]:
-        return self.list_favorites_for(user.id)
+    def list_favorites(self, user: User) -> list[MovieCard]:
+        return self.list_favorites_for(user.id, user.language)
 
-    def list_watchlist(self, user: User) -> list[Movie]:
-        return self.list_watchlist_for(user.id)
+    def list_watchlist(self, user: User) -> list[MovieCard]:
+        return self.list_watchlist_for(user.id, user.language)
 
-    def list_watched(self, user: User) -> list[Movie]:
-        return self.list_watched_for(user.id)
+    def list_watched(self, user: User) -> list[MovieCard]:
+        return self.list_watched_for(user.id, user.language)
 
-    def list_ratings(self, user: User) -> list[Rating]:
-        return self.list_ratings_for(user.id)
+    def list_ratings(self, user: User) -> list[RatingWithMovieOut]:
+        return self.list_ratings_for(user.id, user.language)
 
-    # by user_id — used to expose friends' collections
-    def list_favorites_for(self, user_id) -> list[Movie]:
-        return self.favorites.list_movies(user_id)
+    # by user_id + viewer language — used to expose friends' collections
+    def list_favorites_for(self, user_id: uuid.UUID, language: str) -> list[MovieCard]:
+        iso = to_iso2(language)
+        return [presenter.movie_card(m, iso) for m in self.favorites.list_movies(user_id)]
 
-    def list_watchlist_for(self, user_id) -> list[Movie]:
-        return self.watchlist.list_movies(user_id)
+    def list_watchlist_for(self, user_id: uuid.UUID, language: str) -> list[MovieCard]:
+        iso = to_iso2(language)
+        return [presenter.movie_card(m, iso) for m in self.watchlist.list_movies(user_id)]
 
-    def list_watched_for(self, user_id) -> list[Movie]:
-        return self.watched.list_movies(user_id)
+    def list_watched_for(self, user_id: uuid.UUID, language: str) -> list[MovieCard]:
+        iso = to_iso2(language)
+        return [presenter.movie_card(m, iso) for m in self.watched.list_movies(user_id)]
 
-    def list_ratings_for(self, user_id) -> list[Rating]:
-        return self.ratings.list_for_user(user_id)
+    def list_ratings_for(
+        self, user_id: uuid.UUID, language: str
+    ) -> list[RatingWithMovieOut]:
+        iso = to_iso2(language)
+        return [
+            presenter.rating_with_movie(r, iso)
+            for r in self.ratings.list_for_user(user_id)
+        ]
 
     # ------------ internals ------------
 
     def _ensure_movie_cached(self, tmdb_id: int, user: User) -> None:
-        already_cached = self.db.scalar(
-            select(Movie.tmdb_id).where(Movie.tmdb_id == tmdb_id).limit(1)
-        )
-        if already_cached is None:
+        if not self.movies.repo.exists(tmdb_id):
             self.movies.get_movie_details(tmdb_id, language=user.language)
