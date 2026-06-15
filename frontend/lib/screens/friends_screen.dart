@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import 'match_lobby_screen.dart';
 import 'movie_detail_screen.dart';
 import 'profile_screen.dart';
+import 'qr_scanner_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -303,29 +304,55 @@ class _JoinMatchDialogState extends State<_JoinMatchDialog> {
       backgroundColor: AppTheme.surface,
       title: Text(l10n.joinAMatch,
           style: const TextStyle(color: AppTheme.textMain)),
-      content: TextField(
-        controller: _ctrl,
-        autofocus: true,
-        textCapitalization: TextCapitalization.characters,
-        style: const TextStyle(
-            color: AppTheme.textMain,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 4),
-        decoration: InputDecoration(
-          hintText: 'XXXXX',
-          hintStyle:
-              const TextStyle(color: Colors.white24, letterSpacing: 4),
-          filled: true,
-          fillColor: AppTheme.background,
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.white12)),
-          enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.white12)),
-        ),
-        maxLength: 5,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            style: const TextStyle(
+                color: AppTheme.textMain,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 4),
+            decoration: InputDecoration(
+              hintText: 'XXXXX',
+              hintStyle:
+                  const TextStyle(color: Colors.white24, letterSpacing: 4),
+              filled: true,
+              fillColor: AppTheme.background,
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.white12)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.white12)),
+            ),
+            maxLength: 5,
+          ),
+          const SizedBox(height: 4),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final code = await Navigator.push<String>(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const QrScannerScreen(),
+                    fullscreenDialog: true),
+              );
+              if (code != null && mounted) {
+                setState(() => _ctrl.text = code.toUpperCase());
+              }
+            },
+            icon: const Icon(Icons.qr_code_scanner, size: 18),
+            label: Text(l10n.scanQrCode),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.secondaryPurple,
+              side: const BorderSide(color: AppTheme.primaryPurple),
+              minimumSize: const Size(double.infinity, 42),
+            ),
+          ),
+        ],
       ),
       actions: [
         TextButton(

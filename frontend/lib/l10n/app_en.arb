@@ -152,6 +152,8 @@
   "applyFilters": "Apply",
   "noRecommendationsFound": "No recommendations match your filters.",
   "addedToWatchlist": "added to your watchlist.",
+  "scanQrCode": "Scan a QR code",
+  "scanQrHint": "Point the camera at the match QR code to join",
   "@onboardingCounter": {
     "placeholders": {
       "count": { "type": "int" },

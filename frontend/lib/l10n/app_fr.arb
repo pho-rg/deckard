@@ -152,6 +152,8 @@
   "applyFilters": "Appliquer",
   "noRecommendationsFound": "Aucune recommandation ne correspond à vos filtres.",
   "addedToWatchlist": "ajouté à votre watchlist.",
+  "scanQrCode": "Scanner un QR code",
+  "scanQrHint": "Pointez la caméra vers le QR code du match à rejoindre",
   "@onboardingCounter": {
     "placeholders": {
       "count": { "type": "int" },
