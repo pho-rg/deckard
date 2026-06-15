@@ -8,13 +8,13 @@ import '../theme/app_theme.dart';
 import 'movie_detail_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Period filter definition
+// Period filter
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _Period {
   final String label;
-  final int? from; // inclusive
-  final int? to;   // exclusive
+  final int? from;
+  final int? to;
 
   const _Period(this.label, {this.from, this.to});
 
@@ -48,40 +48,30 @@ class RecommendationsScreen extends StatefulWidget {
   State<RecommendationsScreen> createState() => _RecommendationsScreenState();
 }
 
-class _RecommendationsScreenState extends State<RecommendationsScreen>
-    with SingleTickerProviderStateMixin {
-  // Data
+class _RecommendationsScreenState extends State<RecommendationsScreen> {
   List<Movie> _allMovies = [];
   List<Movie> _filtered = [];
-  int _index = 0;
   bool _loading = true;
 
-  // Filters
   _Period? _selectedPeriod;
   final Set<String> _selectedGenres = {};
   List<String> _availableGenres = [];
 
-  // Animation
-  late final AnimationController _anim;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  // Per-movie interaction state
+  final Set<int> _skipped = {};
+  final Set<int> _watchlisted = {};
+
+  List<Movie> get _visible =>
+      _filtered.where((m) => !_skipped.contains(m.id)).toList();
 
   @override
   void initState() {
     super.initState();
-    _anim = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 280), value: 1.0);
-    _fadeAnim = CurvedAnimation(parent: _anim, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0.06, 0),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOut));
     _loadMovies();
   }
 
   Future<void> _loadMovies() async {
     final movies = await MovieService.getMockMovies();
-    // Collect distinct genre names
     final genres = <String>{};
     for (final m in movies) {
       for (final g in (m.genres ?? [])) {
@@ -99,9 +89,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
   void _applyFilters() {
     final filtered = _allMovies.where((m) {
       if (_selectedPeriod != null &&
-          !_selectedPeriod!.matches(m.releaseDate)) {
-        return false;
-      }
+          !_selectedPeriod!.matches(m.releaseDate)) return false;
       if (_selectedGenres.isNotEmpty) {
         final movieGenres = (m.genres ?? []).map((g) => g.name).toSet();
         if (!_selectedGenres.any((g) => movieGenres.contains(g))) return false;
@@ -111,41 +99,25 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
 
     setState(() {
       _filtered = filtered;
-      _index = 0;
+      _skipped.clear();
+      _watchlisted.clear();
     });
-    if (filtered.isNotEmpty) _playEnter();
   }
 
-  void _playEnter() {
-    _anim.forward(from: 0);
-  }
+  void _skip(int id) => setState(() => _skipped.add(id));
 
-  void _skip() {
-    if (_index < _filtered.length - 1) {
-      setState(() => _index++);
-      _playEnter();
-    } else {
-      setState(() => _index = 0); // loop
-      _playEnter();
-    }
-  }
-
-  void _addToWatchlist() {
-    final movie = _filtered[_index];
-    // TODO: POST /users/me/watchlist { tmdb_id: movie.id }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"${movie.title}" ${AppLocalizations.of(context)!.addedToWatchlist}'),
-        backgroundColor: AppTheme.primaryPurple,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    _skip();
+  void _toggleWatchlist(int id) {
+    setState(() {
+      if (_watchlisted.contains(id)) {
+        _watchlisted.remove(id);
+      } else {
+        _watchlisted.add(id);
+        // TODO: POST /users/me/watchlist { tmdb_id: id }
+      }
+    });
   }
 
   void _showFilterSheet(AppLocalizations l10n) {
-    // Temp state for the sheet
     _Period? tempPeriod = _selectedPeriod;
     final Set<String> tempGenres = Set.from(_selectedGenres);
 
@@ -154,8 +126,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
       isScrollControlled: true,
       backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => DraggableScrollableSheet(
           expand: false,
@@ -164,15 +135,13 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
           maxChildSize: 0.9,
           builder: (_, sc) => Column(
             children: [
-              // Handle
               Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2)),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -185,12 +154,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
                             fontWeight: FontWeight.bold)),
                     const Spacer(),
                     TextButton(
-                      onPressed: () {
-                        setSheet(() {
-                          tempPeriod = null;
-                          tempGenres.clear();
-                        });
-                      },
+                      onPressed: () => setSheet(() {
+                        tempPeriod = null;
+                        tempGenres.clear();
+                      }),
                       child: Text(l10n.clearFilters,
                           style: const TextStyle(
                               color: AppTheme.textDim, fontSize: 13)),
@@ -203,7 +170,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
                   controller: sc,
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
-                    // Period
                     Text(l10n.periodFilter,
                         style: const TextStyle(
                             color: Colors.white38,
@@ -231,7 +197,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
                       }).toList(),
                     ),
                     const SizedBox(height: 24),
-                    // Genres
                     Text(l10n.genreFilter,
                         style: const TextStyle(
                             color: Colors.white38,
@@ -247,13 +212,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
                         return FilterChip(
                           label: Text(g),
                           selected: sel,
-                          onSelected: (_) => setSheet(() {
-                            if (sel) {
-                              tempGenres.remove(g);
-                            } else {
-                              tempGenres.add(g);
-                            }
-                          }),
+                          onSelected: (_) => setSheet(() =>
+                              sel ? tempGenres.remove(g) : tempGenres.add(g)),
                           selectedColor: AppTheme.primaryPurple,
                           backgroundColor: Colors.white10,
                           labelStyle: TextStyle(
@@ -284,8 +244,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
                     },
                     style: FilledButton.styleFrom(
                         backgroundColor: AppTheme.primaryPurple,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14)),
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
                     child: Text(l10n.applyFilters,
                         style: const TextStyle(fontSize: 15)),
                   ),
@@ -322,16 +281,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
   }
 
   @override
-  void dispose() {
-    _anim.dispose();
-    super.dispose();
-  }
-
-  // ── Build ──────────────────────────────────────────────────────────────────
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final visible = _visible;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -346,17 +298,16 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
       body: _loading
           ? const Center(
               child: CircularProgressIndicator(color: AppTheme.primaryPurple))
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header ─────────────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
+          : CustomScrollView(
+              slivers: [
+                // ── Header ───────────────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
                           const Icon(Icons.auto_awesome,
                               size: 12, color: AppTheme.primaryPurple),
                           const SizedBox(width: 6),
@@ -369,11 +320,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
                               letterSpacing: 1.4,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
+                        ]),
+                        const SizedBox(height: 4),
+                        Row(children: [
                           Text(
                             l10n.movieRecommendations.toUpperCase(),
                             style: const TextStyle(
@@ -386,67 +335,82 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
                           const SizedBox(width: 8),
                           const Icon(Icons.auto_awesome,
                               size: 16, color: AppTheme.secondaryPurple),
+                        ]),
+                        const SizedBox(height: 2),
+                        Text(l10n.basedOnYourTastes,
+                            style: const TextStyle(
+                                color: AppTheme.textDim, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ── Filter row ────────────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 14, bottom: 2),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => _showFilterSheet(l10n),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 7),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: AppTheme.primaryPurple, width: 1.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(children: [
+                                Text(
+                                  l10n.addFilters.toUpperCase(),
+                                  style: const TextStyle(
+                                      color: AppTheme.primaryPurple,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1),
+                                ),
+                                const SizedBox(width: 6),
+                                const Icon(Icons.tune,
+                                    size: 14, color: AppTheme.primaryPurple),
+                              ]),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ..._activeFilterChips(),
                         ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        l10n.basedOnYourTastes,
-                        style: const TextStyle(
-                            color: AppTheme.textDim, fontSize: 13),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 14),
-
-                // ── Filter row ─────────────────────────────────────────────
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      // ADD FILTERS button
-                      GestureDetector(
-                        onTap: () => _showFilterSheet(l10n),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 7),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                                color: AppTheme.primaryPurple, width: 1.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                l10n.addFilters.toUpperCase(),
-                                style: const TextStyle(
-                                    color: AppTheme.primaryPurple,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1),
-                              ),
-                              const SizedBox(width: 6),
-                              const Icon(Icons.tune,
-                                  size: 14, color: AppTheme.primaryPurple),
-                            ],
-                          ),
+                // ── Count ─────────────────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 12, 16, 4),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        l10n.moviesCount(visible.length),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.1,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Active filter chips
-                      ..._activeFilterChips(),
-                    ],
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 16),
-
-                // ── Card area ──────────────────────────────────────────────
-                Expanded(
-                  child: _filtered.isEmpty
-                      ? Center(
+                // ── List ──────────────────────────────────────────────────────
+                visible.isEmpty
+                    ? SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
                           child: Padding(
                             padding: const EdgeInsets.all(32),
                             child: Column(
@@ -464,58 +428,28 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
                               ],
                             ),
                           ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          child: Column(
-                            children: [
-                              // Movie card
-                              Expanded(
-                                child: FadeTransition(
-                                  opacity: _fadeAnim,
-                                  child: SlideTransition(
-                                    position: _slideAnim,
-                                    child: _MovieCard(
-                                      movie: _filtered[_index],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              // Action buttons
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  // Skip
-                                  _CircleButton(
-                                    onTap: _skip,
-                                    icon: Icons.close,
-                                    filled: false,
-                                    size: 58,
-                                    iconSize: 26,
-                                  ),
-                                  // Counter
-                                  Text(
-                                    '${_index + 1} / ${_filtered.length}',
-                                    style: const TextStyle(
-                                        color: AppTheme.textDim, fontSize: 13),
-                                  ),
-                                  // Add to watchlist
-                                  _CircleButton(
-                                    onTap: _addToWatchlist,
-                                    icon: Icons.bookmark_add_outlined,
-                                    filled: true,
-                                    size: 58,
-                                    iconSize: 26,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                            ],
+                        ),
+                      )
+                    : SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (_, i) {
+                              final movie = visible[i];
+                              final wl = _watchlisted.contains(movie.id);
+                              return _RecommendationCard(
+                                key: ValueKey(movie.id),
+                                movie: movie,
+                                watchlisted: wl,
+                                onSkip: () => _skip(movie.id),
+                                onToggleWatchlist: () =>
+                                    _toggleWatchlist(movie.id),
+                              );
+                            },
+                            childCount: visible.length,
                           ),
                         ),
-                ),
+                      ),
               ],
             ),
     );
@@ -523,13 +457,25 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Movie card
+// Recommendation card
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _MovieCard extends StatelessWidget {
+class _RecommendationCard extends StatelessWidget {
   final Movie movie;
+  final bool watchlisted;
+  final VoidCallback onSkip;
+  final VoidCallback onToggleWatchlist;
 
-  const _MovieCard({required this.movie});
+  static const double _posterW = 100;
+  static const double _posterH = 150;
+
+  const _RecommendationCard({
+    super.key,
+    required this.movie,
+    required this.watchlisted,
+    required this.onSkip,
+    required this.onToggleWatchlist,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -539,7 +485,6 @@ class _MovieCard extends StatelessWidget {
           orElse: () => Crew(id: 0, name: '', job: '', department: ''),
         )
         .name;
-    final cast = movie.cast?.take(3).map((c) => c.name).join(' • ') ?? '';
     final year = movie.releaseDate?.split('-').first ?? '';
 
     return GestureDetector(
@@ -547,118 +492,145 @@ class _MovieCard extends StatelessWidget {
         context,
         MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: movie)),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
           color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Poster ────────────────────────────────────────────────────
-              Expanded(
-                flex: 5,
-                child: CachedNetworkImage(
-                  imageUrl: movie.posterUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) =>
-                      Container(color: Colors.grey[900]),
-                  errorWidget: (_, __, ___) => Container(
-                    color: Colors.grey[900],
-                    child: const Icon(Icons.movie,
-                        color: Colors.white10, size: 48),
+              // ── Poster ──────────────────────────────────────────────────
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: _posterW,
+                  height: _posterH,
+                  child: CachedNetworkImage(
+                    imageUrl: movie.posterUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) =>
+                        Container(color: Colors.grey[900]),
+                    errorWidget: (_, __, ___) => Container(
+                      color: Colors.grey[900],
+                      child: const Icon(Icons.movie,
+                          color: Colors.white10, size: 32),
+                    ),
                   ),
                 ),
               ),
-              // ── Info ──────────────────────────────────────────────────────
+              const SizedBox(width: 12),
+
+              // ── Info ────────────────────────────────────────────────────
               Expanded(
-                flex: 6,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  height: _posterH,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Genres
-                      if ((movie.genres ?? []).isNotEmpty) ...[
+                      // Genre chips
+                      if ((movie.genres ?? []).isNotEmpty)
                         Wrap(
-                          spacing: 6,
+                          spacing: 4,
                           runSpacing: 4,
                           children: (movie.genres ?? []).take(2).map((g) {
                             return Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryPurple.withValues(alpha: 0.25),
+                                color: AppTheme.primaryPurple
+                                    .withValues(alpha: 0.22),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 g.name.toUpperCase(),
                                 style: const TextStyle(
                                   color: AppTheme.secondaryPurple,
-                                  fontSize: 9,
+                                  fontSize: 8,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.8,
+                                  letterSpacing: 0.6,
                                 ),
                               ),
                             );
                           }).toList(),
                         ),
-                        const SizedBox(height: 10),
-                      ],
-                      // Title + year
+                      const SizedBox(height: 6),
+
+                      // Title
                       Text(
                         movie.title,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                           height: 1.2,
                         ),
-                        maxLines: 3,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (year.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(year,
+
+                      // Year + director
+                      if (year.isNotEmpty || (director != null && director.isNotEmpty))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(
+                            [if (year.isNotEmpty) year,
+                             if (director != null && director.isNotEmpty) director]
+                                .join(' · '),
                             style: const TextStyle(
-                                color: AppTheme.textDim, fontSize: 12)),
-                      ],
-                      const SizedBox(height: 12),
-                      // Overview
-                      Expanded(
-                        child: Text(
-                          movie.overview ?? '',
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 12,
-                            height: 1.55,
+                                color: AppTheme.textDim, fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.fade,
                         ),
+
+                      const SizedBox(height: 6),
+
+                      // Synopsis
+                      if ((movie.overview ?? '').isNotEmpty)
+                        Expanded(
+                          child: Text(
+                            movie.overview!,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                              height: 1.45,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                      const Spacer(),
+
+                      // ── Action buttons ───────────────────────────────────
+                      Row(
+                        children: [
+                          // Skip (hidden when watchlisted)
+                          if (!watchlisted)
+                            _IconBtn(
+                              icon: Icons.thumb_down_off_alt,
+                              filled: false,
+                              onTap: onSkip,
+                            ),
+                          const Spacer(),
+
+                          // Watchlist toggle
+                          _IconBtn(
+                            icon: watchlisted
+                                ? Icons.bookmark_remove_outlined
+                                : Icons.bookmark_add_outlined,
+                            filled: watchlisted,
+                            onTap: onToggleWatchlist,
+                            label: watchlisted
+                                ? AppLocalizations.of(context)!.removeWatchlist
+                                : AppLocalizations.of(context)!.watchlistAdd,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      // Director
-                      if (director != null && director.isNotEmpty) ...[
-                        Text(
-                          director,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                      ],
-                      // Cast
-                      if (cast.isNotEmpty)
-                        Text(
-                          cast,
-                          style: const TextStyle(
-                              color: AppTheme.textDim, fontSize: 11),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
                     ],
                   ),
                 ),
@@ -672,48 +644,73 @@ class _MovieCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Circle action button
+// Small icon button (circle) or pill (icon + label)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _CircleButton extends StatelessWidget {
-  final VoidCallback onTap;
+class _IconBtn extends StatelessWidget {
   final IconData icon;
   final bool filled;
-  final double size;
-  final double iconSize;
+  final VoidCallback onTap;
+  final String? label;
 
-  const _CircleButton({
-    required this.onTap,
+  const _IconBtn({
     required this.icon,
     required this.filled,
-    this.size = 56,
-    this.iconSize = 24,
+    required this.onTap,
+    this.label,
   });
 
   @override
   Widget build(BuildContext context) {
+    final color = filled ? Colors.white : Colors.white54;
+    final bg = filled ? AppTheme.primaryPurple : Colors.transparent;
+    final border = filled ? null : Border.all(color: Colors.white24, width: 1.5);
+
+    if (label == null) {
+      // Circle
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle, color: bg, border: border),
+          child: Icon(icon, size: 17, color: color),
+        ),
+      );
+    }
+
+    // Pill
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: size,
-        height: size,
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: filled ? AppTheme.primaryPurple : Colors.transparent,
-          border: filled
-              ? null
-              : Border.all(color: Colors.white30, width: 1.5),
+          color: bg,
+          borderRadius: BorderRadius.circular(17),
+          border: border,
         ),
-        child: Icon(icon,
-            color: filled ? Colors.white : Colors.white60,
-            size: iconSize),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 6),
+            Text(label!,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                )),
+          ],
+        ),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Active filter chip (removable)
+// Active filter chip
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ActiveChip extends StatelessWidget {
@@ -730,21 +727,19 @@ class _ActiveChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.primaryPurple.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.5)),
+        border: Border.all(
+            color: AppTheme.primaryPurple.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppTheme.secondaryPurple,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
+          Text(label,
+              style: const TextStyle(
+                color: AppTheme.secondaryPurple,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              )),
           const SizedBox(width: 6),
           GestureDetector(
             onTap: onRemove,
