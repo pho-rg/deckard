@@ -34,4 +34,21 @@ class MovieService {
       return [];
     }
   }
+
+  /// Find a single movie by its TMDB id.
+  /// Searches the full JSONL (not the randomised subset) for reliability.
+  static Future<Movie?> getById(int tmdbId) async {
+    try {
+      final String response =
+          await rootBundle.loadString('lib/fake_data/raw_movie_data_test.jsonl');
+      for (final line in response.split('\n')) {
+        if (line.trim().isEmpty) continue;
+        try {
+          final data = json.decode(line) as Map<String, dynamic>;
+          if (data['id'] == tmdbId) return Movie.fromJson(data);
+        } catch (_) {}
+      }
+    } catch (_) {}
+    return null;
+  }
 }
