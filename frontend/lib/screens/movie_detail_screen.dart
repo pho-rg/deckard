@@ -7,7 +7,9 @@ import '../models/movie.dart';
 import '../widgets/movie_card.dart';
 import '../theme/app_theme.dart';
 import '../services/movie_service.dart';
+import 'all_reviews_screen.dart';
 import 'person_screen.dart';
+import 'profile_screen.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final Movie movie;
@@ -833,11 +835,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
 
   Widget _buildReviewsSection(AppLocalizations l10n) {
     final List<Map<String, dynamic>> mockReviews = [
-      {'user': 'Alex', 'rating': 4.5, 'text': 'A masterpiece of modern cinema. The pacing is perfect.'},
-      {'user': 'Sam', 'rating': 3.0, 'text': 'Interesting concept, but the execution felt a bit rushed.'},
-      {'user': 'Jordan', 'rating': 5.0, 'text': 'I could watch this every day. The acting is phenomenal.'},
-      {'user': 'Taylor', 'rating': 4.0, 'text': 'Great visuals and sound design. Recommended.'},
-      {'user': 'Morgan', 'rating': 2.5, 'text': 'Not my cup of tea. Too slow for my taste.'},
+      {'user': 'Alex',   'userId': 'user-alex',   'rating': 4.5, 'date': 'June 10, 2026', 'text': 'A masterpiece of modern cinema. The pacing is perfect.'},
+      {'user': 'Sam',    'userId': 'user-sam',    'rating': 3.0, 'date': 'June 8, 2026',  'text': 'Interesting concept, but the execution felt a bit rushed.'},
+      {'user': 'Jordan', 'userId': 'user-jordan', 'rating': 5.0, 'date': 'June 5, 2026',  'text': 'I could watch this every day. The acting is phenomenal.'},
+      {'user': 'Taylor', 'userId': 'user-taylor', 'rating': 4.0, 'date': 'May 30, 2026',  'text': 'Great visuals and sound design. Recommended.'},
+      {'user': 'Morgan', 'userId': 'user-morgan', 'rating': 2.5, 'date': 'May 25, 2026',  'text': 'Not my cup of tea. Too slow for my taste.'},
     ];
 
     return Padding(
@@ -850,10 +852,18 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white38, letterSpacing: 1.2),
           ),
           const SizedBox(height: 25),
-          ...mockReviews.take(3).map((r) => _reviewItem(r['user'], r['rating'], r['text'])),
+          ...mockReviews.take(3).map((r) => _reviewItem(r['user'], r['userId'], r['rating'], r['text'])),
           Center(
             child: TextButton(
-              onPressed: () {},
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AllReviewsScreen(
+                    movie: widget.movie,
+                    reviews: mockReviews,
+                  ),
+                ),
+              ),
               child: Text(l10n.allReviews, style: const TextStyle(color: AppTheme.secondaryPurple, fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ),
@@ -862,7 +872,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
     );
   }
 
-  Widget _reviewItem(String user, double rating, String text) {
+  Widget _reviewItem(String user, String? userId, double rating, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: Column(
@@ -870,13 +880,44 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
         children: [
           Row(
             children: [
-              const CircleAvatar(
-                backgroundColor: Colors.white10,
-                radius: 10,
-                child: Icon(Icons.person, color: Colors.white10, size: 12),
+              GestureDetector(
+                onTap: userId != null
+                    ? () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProfileScreen(
+                              userId: userId,
+                              initialUsername: user,
+                            ),
+                          ),
+                        )
+                    : null,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppTheme.surface,
+                      radius: 10,
+                      child: Text(
+                        user.isNotEmpty ? user[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                            color: AppTheme.secondaryPurple,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 9),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      user,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: userId != null ? AppTheme.secondaryPurple : Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 8),
-              Text(user, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)),
               const Spacer(),
               Row(children: List.generate(5, (i) => Icon(Icons.star, size: 12, color: i < rating ? AppTheme.secondaryPurple : Colors.white10))),
             ],

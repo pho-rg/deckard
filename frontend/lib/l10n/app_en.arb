@@ -140,6 +140,7 @@
   "filmography": "Filmography",
   "biography": "Biography",
   "noFilmography": "No films found in our catalogue.",
+  "noReviewsYet": "No reviews yet.",
   "@onboardingCounter": {
     "placeholders": {
       "count": { "type": "int" },
