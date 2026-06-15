@@ -25,7 +25,10 @@ import argparse
 from datetime import date
 from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 # ---------------------------------------------------------------------------
 # Config
@@ -33,6 +36,7 @@ from sqlalchemy import create_engine, text
 BATCH_SIZE = 500
 KEPT_LANGUAGES = {"fr", "en"}
 TRAILER_LANG_PREF = ["en", "fr"] # Langues pour lesquelles on veut un trailer (ordre de préférence)
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
 # ---------------------------------------------------------------------------
@@ -252,8 +256,7 @@ def parse_crew(data: dict) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def load(shards_dir: str) -> None:
-    db_url = os.environ["DATABASE_URL"]
-    engine = create_engine(db_url, future=True)
+    engine = create_engine(DATABASE_URL, future=True)
 
     shard_paths = sorted(glob.glob(str(Path(shards_dir) / "raw_movie_data_*.jsonl")))
     if not shard_paths:
