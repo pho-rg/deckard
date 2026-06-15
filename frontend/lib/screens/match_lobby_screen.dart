@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../models/friend_models.dart';
@@ -159,8 +160,8 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Faux QR grid
-                      const _FauxQrGrid(),
+                      // Real QR code encoding the join code
+                      _SessionQr(code: _session.code),
                     ],
                   ),
                 ),
@@ -328,126 +329,29 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Faux QR grid (decorative, 21×21 QR-like structure)
+// Real QR code — encodes the session join code via qr_flutter
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _FauxQrGrid extends StatelessWidget {
-  const _FauxQrGrid();
+class _SessionQr extends StatelessWidget {
+  final String code;
+
+  const _SessionQr({required this.code});
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(170, 170),
-      painter: _QrPainter(),
+    return QrImageView(
+      data: code,
+      version: QrVersions.auto,
+      size: 170,
+      backgroundColor: Colors.white,
+      eyeStyle: const QrEyeStyle(
+        eyeShape: QrEyeShape.square,
+        color: Colors.black,
+      ),
+      dataModuleStyle: const QrDataModuleStyle(
+        dataModuleShape: QrDataModuleShape.square,
+        color: Colors.black,
+      ),
     );
   }
-}
-
-class _QrPainter extends CustomPainter {
-  // Pre-built 21×21 QR-like grid (computed once)
-  static final _grid = _buildGrid();
-
-  static List<List<int>> _buildGrid() {
-    const n = 21;
-    // -1 = unset, 0 = white, 1 = black
-    final g = List.generate(n, (_) => List.filled(n, -1));
-
-    // ── Finder pattern template ──────────────────────────────────────────────
-    const fp = [
-      [1, 1, 1, 1, 1, 1, 1],
-      [1, 0, 0, 0, 0, 0, 1],
-      [1, 0, 1, 1, 1, 0, 1],
-      [1, 0, 1, 1, 1, 0, 1],
-      [1, 0, 1, 1, 1, 0, 1],
-      [1, 0, 0, 0, 0, 0, 1],
-      [1, 1, 1, 1, 1, 1, 1],
-    ];
-
-    void placeFinder(int r0, int c0) {
-      for (var r = 0; r < 7; r++) {
-        for (var c = 0; c < 7; c++) {
-          g[r0 + r][c0 + c] = fp[r][c];
-        }
-      }
-    }
-
-    placeFinder(0, 0);   // top-left
-    placeFinder(0, 14);  // top-right
-    placeFinder(14, 0);  // bottom-left
-
-    // ── Separators (1-module white border around each finder) ────────────────
-    void s0(int r, int c) {
-      if (r >= 0 && r < n && c >= 0 && c < n && g[r][c] == -1) g[r][c] = 0;
-    }
-
-    for (var i = 0; i <= 7; i++) s0(7, i);       // top-left: row 7
-    for (var i = 0; i <= 7; i++) s0(i, 7);       // top-left: col 7
-    for (var i = 13; i <= 20; i++) s0(7, i);     // top-right: row 7
-    for (var i = 0; i <= 7; i++) s0(i, 13);      // top-right: col 13
-    for (var i = 0; i <= 7; i++) s0(13, i);      // bottom-left: row 13
-    for (var i = 13; i <= 20; i++) s0(i, 7);     // bottom-left: col 7
-
-    // ── Timing patterns (row 6 and col 6 between separators) ─────────────────
-    for (var i = 8; i <= 12; i++) {
-      g[6][i] = i.isEven ? 1 : 0;
-      g[i][6] = i.isEven ? 1 : 0;
-    }
-
-    // ── Dark module (always black) ────────────────────────────────────────────
-    g[13][8] = 1;
-
-    // ── Format info strips (simplified decorative values) ─────────────────────
-    for (var c = 0; c <= 8; c++) {
-      if (g[8][c] == -1) g[8][c] = (c & 1) ^ ((c >> 1) & 1);
-    }
-    for (var r = 0; r <= 7; r++) {
-      if (g[r][8] == -1) g[r][8] = (r & 1) ^ 1;
-    }
-    for (var c = 13; c <= 20; c++) {
-      if (g[8][c] == -1) g[8][c] = (c + 1) & 1;
-    }
-    for (var r = 13; r <= 20; r++) {
-      if (g[r][8] == -1) g[r][8] = r & 1;
-    }
-
-    // ── Data area: deterministic pseudo-random fill ───────────────────────────
-    var seed = 0xA3F1B8C2;
-    for (var r = 0; r < n; r++) {
-      for (var c = 0; c < n; c++) {
-        if (g[r][c] == -1) {
-          seed ^= seed << 13;
-          seed ^= seed >> 17;
-          seed ^= seed << 5;
-          seed &= 0xFFFFFFFF;
-          g[r][c] = seed & 1;
-        }
-      }
-    }
-
-    return g;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final black = Paint()..color = Colors.black;
-    final cell = size.width / 21;
-
-    for (var r = 0; r < 21; r++) {
-      for (var c = 0; c < 21; c++) {
-        if (_grid[r][c] == 1) {
-          canvas.drawRRect(
-            RRect.fromRectAndRadius(
-              Rect.fromLTWH(
-                  c * cell + 0.5, r * cell + 0.5, cell - 1, cell - 1),
-              Radius.circular(cell * 0.18),
-            ),
-            black,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
