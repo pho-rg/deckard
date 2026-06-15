@@ -116,5 +116,12 @@
   "unanimousMoviesSubtitle": "Everyone in the group selected these films.",
   "noMatchFound": "No match this time!",
   "noMatchFoundSubtitle": "Your group couldn't agree on a film. Try again with different choices.",
-  "restartMatch": "Start a new match"
+  "restartMatch": "Start a new match",
+
+  "loginSubtitle": "Discover films. Together.",
+  "passwordLabel": "PASSWORD",
+  "loginButton": "Log in",
+  "fieldRequired": "This field is required",
+  "invalidEmail": "Enter a valid email address",
+  "logOut": "Log out"
 }
