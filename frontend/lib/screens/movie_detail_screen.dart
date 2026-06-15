@@ -7,6 +7,7 @@ import '../models/movie.dart';
 import '../widgets/movie_card.dart';
 import '../theme/app_theme.dart';
 import '../services/movie_service.dart';
+import 'person_screen.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final Movie movie;
@@ -94,10 +95,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final director = widget.movie.crew?.firstWhere(
+    final directorCrew = widget.movie.crew?.firstWhere(
       (c) => c.job == 'Director',
       orElse: () => Crew(id: 0, name: 'Unknown', job: '', department: ''),
-    ).name ?? 'Unknown';
+    );
+    final director = directorCrew?.name ?? 'Unknown';
 
     return Scaffold(
       body: CustomScrollView(
@@ -108,7 +110,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(l10n, director),
+                _buildHeader(l10n, director, directorCrew),
                 _buildSectionDivider(),
                 _buildRatingsSection(l10n),
                 _buildUserActionSection(l10n),
@@ -181,7 +183,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
     );
   }
 
-  Widget _buildHeader(AppLocalizations l10n, String director) {
+  Widget _buildHeader(
+      AppLocalizations l10n, String director, Crew? directorCrew) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -195,12 +198,50 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
               children: [
                 Text(
                   widget.movie.title.toUpperCase(),
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '${widget.movie.releaseDate?.split('-').first ?? 'N/A'} • $director',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                Row(
+                  children: [
+                    Text(
+                      '${widget.movie.releaseDate?.split('-').first ?? 'N/A'} • ',
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 14),
+                    ),
+                    if (directorCrew != null && directorCrew.id != 0)
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PersonScreen(
+                              personId: directorCrew.id,
+                              name: directorCrew.name,
+                              role: directorCrew.job,
+                              profileUrl: directorCrew.profileUrl.isNotEmpty
+                                  ? directorCrew.profileUrl
+                                  : null,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          director,
+                          style: const TextStyle(
+                            color: AppTheme.secondaryPurple,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        director,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 14),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
@@ -581,7 +622,19 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       itemBuilder: (context, index) {
         final member = cast[index];
         return InkWell(
-          onTap: () {},
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PersonScreen(
+                personId: member.id,
+                name: member.name,
+                role: member.character,
+                profileUrl: member.profilePath != null
+                    ? member.profileUrl
+                    : null,
+              ),
+            ),
+          ),
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
@@ -645,7 +698,19 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       itemBuilder: (context, index) {
         final member = crew[index];
         return InkWell(
-          onTap: () {},
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PersonScreen(
+                personId: member.id,
+                name: member.name,
+                role: member.job,
+                profileUrl: member.profileUrl.isNotEmpty
+                    ? member.profileUrl
+                    : null,
+              ),
+            ),
+          ),
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),

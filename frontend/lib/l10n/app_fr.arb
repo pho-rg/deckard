@@ -137,6 +137,9 @@
   "onboardingSubtitle": "Choisissez 1 à 10 films pour personnaliser votre expérience.",
   "onboardingContinue": "Continuer",
   "onboardingCounter": "{count} / {max} sélectionnés",
+  "filmography": "Filmographie",
+  "biography": "Biographie",
+  "noFilmography": "Aucun film trouvé dans notre catalogue.",
   "@onboardingCounter": {
     "placeholders": {
       "count": { "type": "int" },

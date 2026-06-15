@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../models/movie.dart';
 import '../services/movie_service.dart';
 import 'movie_detail_screen.dart';
+import 'person_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -379,7 +380,17 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         final profileUrl = isCast ? person.profileUrl : (person as Crew).profileUrl;
 
         return ListTile(
-          onTap: () {},
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PersonScreen(
+                personId: person.id,
+                name: person.name,
+                role: isCast ? person.character : person.job,
+                profileUrl: profileUrl.isNotEmpty ? profileUrl : null,
+              ),
+            ),
+          ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           leading: CircleAvatar(
             backgroundColor: Colors.white10,
