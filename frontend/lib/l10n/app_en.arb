@@ -123,5 +123,24 @@
   "loginButton": "Log in",
   "fieldRequired": "This field is required",
   "invalidEmail": "Enter a valid email address",
-  "logOut": "Log out"
+  "logOut": "Log out",
+  "logOutConfirm": "Are you sure you want to log out?",
+  "cancel": "Cancel",
+
+  "loginTab": "Log in",
+  "registerTab": "Sign up",
+  "registerButton": "Create account",
+  "usernameTooShort": "At least 3 characters",
+  "passwordTooShort": "At least 8 characters",
+
+  "onboardingTitle": "What films do you love?",
+  "onboardingSubtitle": "Pick 1 to 10 films to personalise your experience.",
+  "onboardingContinue": "Continue",
+  "onboardingCounter": "{count} / {max} selected",
+  "@onboardingCounter": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  }
 }

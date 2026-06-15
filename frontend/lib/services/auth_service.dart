@@ -24,6 +24,35 @@ class AuthService {
     ApiService.token = mockToken;
   }
 
+  /// Register with email + username + password.
+  /// Mock: accepts any valid inputs and stores a fake token.
+  /// TODO: replace body with real API call:
+  ///   final data = await ApiService().post('/auth/register', {'email': email, 'username': username, 'password': password});
+  ///   final token = data['access_token'] as String;
+  static Future<void> register(
+      String email, String username, String password) async {
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    if (email.trim().isEmpty || username.trim().isEmpty || password.isEmpty) {
+      throw Exception('Tous les champs sont requis.');
+    }
+
+    // Mock token — replace with data['access_token'] from real API
+    const mockToken = 'mock-token-abc123';
+    await _storage.write(key: _tokenKey, value: mockToken);
+    ApiService.token = mockToken;
+  }
+
+  /// Save onboarding movie picks (called after register).
+  /// Each selected film should be added to both the user's watched list
+  /// and their favorites list.
+  /// TODO: implement with two calls (or a dedicated onboarding endpoint):
+  ///   await ApiService().post('/users/me/watched/batch', {'tmdb_ids': tmdbIds});
+  ///   await ApiService().post('/users/me/favorites/batch', {'tmdb_ids': tmdbIds});
+  static Future<void> saveOnboardingMovies(List<int> tmdbIds) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
   /// Clear the stored token and reset the API service.
   static Future<void> logout() async {
     await _storage.delete(key: _tokenKey);
