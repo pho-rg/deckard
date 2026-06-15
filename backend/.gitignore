@@ -15,3 +15,9 @@ htmlcov/
 .vscode/
 *.sqlite3x
 .db_load/.env
+
+# Large datasets — never commit, load locally / regenerate
+db_load/.env
+db_load/raw_movie_data_*.jsonl
+db_load/user_dataset/
+*.csv
