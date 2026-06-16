@@ -1,30 +1,48 @@
 import logging
+import math
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.integrations.tmdb import TMDBClient, get_tmdb_client
 from app.repositories.movie_repository import MovieRepository
-from app.schemas.movie import MovieDetailOut
+from app.schemas.movie import MovieCard, MovieDetailOut, PagedMovies
 from app.services import presenter, tmdb_cache
 from app.services.localization import to_iso2
 
 logger = logging.getLogger(__name__)
 
+_SEARCH_PAGE_SIZE = 20
+
+
+class MovieNotFound(Exception):
+    """The requested movie is not present in our database."""
+
+    def __init__(self, tmdb_id: int):
+        super().__init__(f"Movie {tmdb_id} not found in database")
+        self.tmdb_id = tmdb_id
+
 
 class MovieService:
     def __init__(self, db: Session, tmdb: TMDBClient | None = None):
         self.db = db
-        self.tmdb = tmdb or get_tmdb_client()
+        # TMDB is only needed for the trending / now-playing passthroughs.
+        self._tmdb = tmdb
         self.repo = MovieRepository(db)
 
+    @property
+    def tmdb(self) -> TMDBClient:
+        if self._tmdb is None:
+            self._tmdb = get_tmdb_client()
+        return self._tmdb
+
+    # ------------ DB-sourced (our imported catalogue) ------------
+
     def get_movie_details(self, tmdb_id: int, *, language: str = "fr-FR") -> MovieDetailOut:
-        lang_iso = to_iso2(language)
         movie = self.repo.get_full(tmdb_id)
         if movie is None:
-            logger.info("cache miss for movie %s — fetching TMDB (safety net)", tmdb_id)
-            movie = self._sync(tmdb_id, language=language)
-        return presenter.movie_detail(movie, lang_iso)
+            raise MovieNotFound(tmdb_id)
+        return presenter.movie_detail(movie, to_iso2(language))
 
     def get_featured(self, *, language: str = "fr-FR") -> MovieDetailOut | None:
         movie = self.repo.get_featured()
@@ -32,17 +50,31 @@ class MovieService:
             return None
         return presenter.movie_detail(movie, to_iso2(language))
 
-    # ------------ list endpoints (TMDB passthrough, memory-cached) ------------
+    def cards_by_ids(
+        self, tmdb_ids: list[int], *, language: str = "fr-FR"
+    ) -> list[MovieCard]:
+        # Resolve a caller-provided tmdb_id list to movie cards (onboarding grid).
+        # Preserves the input order; unknown ids are skipped.
+        iso = to_iso2(language)
+        by_id = {m.tmdb_id: m for m in self.repo.list_by_ids(tmdb_ids)}
+        return [
+            presenter.movie_card(by_id[i], iso) for i in tmdb_ids if i in by_id
+        ]
 
     def search_movies(
         self, query: str, *, page: int = 1, language: str = "fr-FR"
-    ) -> dict[str, Any]:
-        key = ("search", query.strip().lower(), page, language)
-        return tmdb_cache.get_or_compute(
-            "search",
-            key,
-            lambda: self.tmdb.search_movies(query, page=page, language=language),
+    ) -> PagedMovies:
+        iso = to_iso2(language)
+        movies, total = self.repo.search(query, page=page, page_size=_SEARCH_PAGE_SIZE)
+        total_pages = max(1, math.ceil(total / _SEARCH_PAGE_SIZE)) if total else 1
+        return PagedMovies(
+            page=page,
+            total_pages=total_pages,
+            total_results=total,
+            results=[presenter.movie_summary(m, iso) for m in movies],
         )
+
+    # ------------ TMDB passthrough (memory-cached) ------------
 
     def list_trending(self, *, language: str = "fr-FR") -> dict[str, Any]:
         return tmdb_cache.get_or_compute(
@@ -58,25 +90,3 @@ class MovieService:
             key,
             lambda: self.tmdb.now_playing(region=region, page=page, language=language),
         )
-
-    # ------------ internals ------------
-
-    def _sync(self, tmdb_id: int, *, language: str):
-        lang_iso = to_iso2(language)
-        movie_data = self.tmdb.get_movie(tmdb_id, language=language)
-        credits_data = self.tmdb.get_movie_credits(tmdb_id, language=language)
-        videos_data = self.tmdb.get_movie_videos(tmdb_id, language=language)
-
-        try:
-            self.repo.upsert_movie(movie_data, lang_iso)
-            self.repo.replace_genres(tmdb_id, movie_data.get("genres", []), lang_iso)
-            self.repo.replace_credits(tmdb_id, credits_data, lang_iso)
-            self.repo.replace_video(tmdb_id, videos_data, lang_iso)
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
-
-        movie = self.repo.get_full(tmdb_id)
-        assert movie is not None, "movie should exist right after sync"
-        return movie

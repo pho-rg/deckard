@@ -1,22 +1,28 @@
 import uuid
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 
 from app.deps import CurrentUser, DbSession
 from app.repositories.user_repository import UserRepository
 from app.schemas.friend import UserPublicOut
 from app.schemas.movie import MovieCard
 from app.schemas.user import UserOut, UserUpdate
-from app.schemas.user_movie import RatingWithMovieOut
+from app.schemas.user_movie import FavoriteBatchIn, RatingWithMovieOut
 from app.services.friendship_service import FriendshipService
 from app.services.user_movie_service import UserMovieService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+def _user_out(db, user) -> UserOut:
+    out = UserOut.model_validate(user)
+    out.needs_onboarding = UserMovieService(db).needs_onboarding(user)
+    return out
+
+
 @router.get("/me", response_model=UserOut)
-def get_me(current_user: CurrentUser):
-    return current_user
+def get_me(db: DbSession, current_user: CurrentUser):
+    return _user_out(db, current_user)
 
 
 @router.put("/me", response_model=UserOut)
@@ -27,7 +33,15 @@ def update_me(payload: UserUpdate, db: DbSession, current_user: CurrentUser):
         current_user.region = payload.region
     db.commit()
     db.refresh(current_user)
-    return current_user
+    return _user_out(db, current_user)
+
+
+@router.post("/me/favorites/batch", status_code=status.HTTP_204_NO_CONTENT)
+def add_favorites_batch(
+    payload: FavoriteBatchIn, db: DbSession, current_user: CurrentUser
+):
+    # Onboarding validation: the selected movies are added to favorites.
+    UserMovieService(db).add_favorites_batch(current_user, payload.tmdb_ids)
 
 
 @router.get("/me/favorites", response_model=list[MovieCard])

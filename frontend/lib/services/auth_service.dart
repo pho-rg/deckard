@@ -11,7 +11,9 @@ class AuthService {
 
   /// Connexion email + mot de passe.
   /// POST /auth/login → { access_token, refresh_token, token_type }
-  static Future<void> login(String email, String password) async {
+  /// Retourne `true` si l'utilisateur doit passer par l'onboarding
+  /// (aucun favori enregistré).
+  static Future<bool> login(String email, String password) async {
     final data = await _api.post('/auth/login', {
       'email': email.trim(),
       'password': password,
@@ -20,12 +22,13 @@ class AuthService {
       data['access_token'] as String,
       data['refresh_token'] as String,
     );
+    return fetchNeedsOnboarding();
   }
 
   /// Inscription email + username + mot de passe.
   /// POST /auth/register → UserOut (PAS de token), donc on enchaîne un login
-  /// pour récupérer les tokens et authentifier l'onboarding qui suit.
-  static Future<void> register(
+  /// pour récupérer les tokens. Retourne `true` (nouvel utilisateur → onboarding).
+  static Future<bool> register(
       String email, String username, String password) async {
     await _api.post('/auth/register', {
       'email': email.trim(),
@@ -33,17 +36,21 @@ class AuthService {
       'password': password,
     });
     // register ne renvoie pas de token → on se connecte immédiatement.
-    await login(email, password);
+    return login(email, password);
   }
 
-  /// Save onboarding movie picks (called after register).
-  /// Each selected film should be added to both the user's watched list
-  /// and their favorites list.
-  /// TODO: implement with two calls (or a dedicated onboarding endpoint):
-  ///   await ApiService().post('/users/me/watched/batch', {'tmdb_ids': tmdbIds});
-  ///   await ApiService().post('/users/me/favorites/batch', {'tmdb_ids': tmdbIds});
+  /// Indique si l'onboarding est à faire : vrai tant que l'utilisateur n'a
+  /// aucun favori. GET /users/me → { ..., needs_onboarding }.
+  static Future<bool> fetchNeedsOnboarding() async {
+    final me = await _api.get('/users/me');
+    return (me is Map && me['needs_onboarding'] == true);
+  }
+
+  /// Validation de l'onboarding : les films cochés deviennent des favoris.
+  /// POST /users/me/favorites/batch { tmdb_ids: [...] }
   static Future<void> saveOnboardingMovies(List<int> tmdbIds) async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    if (tmdbIds.isEmpty) return;
+    await _api.post('/users/me/favorites/batch', {'tmdb_ids': tmdbIds});
   }
 
   /// Efface les tokens et réinitialise l'API.

@@ -13,6 +13,7 @@ from app.schemas.movie import (
     GenreOut,
     MovieCard,
     MovieDetailOut,
+    MovieSummary,
     PersonOut,
 )
 from app.schemas.movie import _image_url
@@ -28,10 +29,9 @@ def _movie_title(movie: Movie, lang_iso: str) -> tuple[str, str | None, str | No
 
 
 def _person_out(person, lang_iso: str) -> PersonOut:
-    content = pick_content(person.contents, lang_iso)
     return PersonOut(
         tmdb_id=person.tmdb_id,
-        name=content.name if content else "",
+        name=person.name or "",
         profile_url=_image_url(person.profile_path, "w185"),
     )
 
@@ -47,6 +47,22 @@ def movie_card(movie: Movie, lang_iso: str) -> MovieCard:
         vote_average=movie.vote_average,
         poster_url=_image_url(movie.poster_path, "w500"),
         backdrop_url=_image_url(movie.backdrop_path, "w1280"),
+    )
+
+
+def movie_summary(movie: Movie, lang_iso: str) -> MovieSummary:
+    """DB-sourced summary in the same shape as a TMDB list entry."""
+    title, overview, _ = _movie_title(movie, lang_iso)
+    return MovieSummary(
+        tmdb_id=movie.tmdb_id,
+        title=title,
+        original_title=movie.original_title,
+        overview=overview,
+        release_date=movie.release_date,
+        vote_average=movie.vote_average,
+        genre_ids=[g.tmdb_id for g in movie.genres],
+        poster_path=movie.poster_path,
+        backdrop_path=movie.backdrop_path,
     )
 
 

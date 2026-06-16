@@ -31,6 +31,12 @@ class _UserMovieFlagRepository:
             .limit(1)
         ) is not None
 
+    def has_any(self, user_id: uuid.UUID) -> bool:
+        # True if the user has at least one entry (used for onboarding detection)
+        return self.db.scalar(
+            select(self.model.movie_id).where(self.model.user_id == user_id).limit(1)
+        ) is not None
+
     def add(self, user_id: uuid.UUID, movie_id: int) -> None:
         stmt = pg_insert(self.model).values(user_id=user_id, movie_id=movie_id)
         stmt = stmt.on_conflict_do_nothing()

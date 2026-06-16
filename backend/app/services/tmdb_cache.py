@@ -7,8 +7,8 @@ from cachetools import TTLCache
 
 _caches: dict[str, TTLCache] = {
     # bucket    : maxsize  ttl(seconds)
+    # Only the TMDB passthroughs are cached — everything else is DB-backed.
     "trending":   TTLCache(maxsize=8,   ttl=600),    # 10 min
-    "search":     TTLCache(maxsize=256, ttl=600),    # 10 min
     "now_playing": TTLCache(maxsize=64, ttl=1800),   # 30 min
 }
 

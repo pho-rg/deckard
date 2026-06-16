@@ -20,6 +20,12 @@ class RatingIn(BaseModel):
     review: str | None = Field(default=None, max_length=5000)
 
 
+class FavoriteBatchIn(BaseModel):
+    """Onboarding payload: the movies the user picked become favorites."""
+
+    tmdb_ids: list[int] = Field(min_length=1, max_length=50)
+
+
 class RatingWithMovieOut(BaseModel):
     """A user's rating with the rated movie embedded (built by the presenter)."""
 

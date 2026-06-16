@@ -131,3 +131,9 @@ class PagedMovies(BaseModel):
     total_pages: int
     total_results: int
     results: list[MovieSummary]
+
+
+class MovieIdsIn(BaseModel):
+    """Onboarding grid: a fixed list of tmdb_ids resolved to movie cards."""
+
+    tmdb_ids: list[int] = Field(min_length=1, max_length=100)

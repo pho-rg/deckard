@@ -18,7 +18,7 @@ from app.schemas.movie import MovieCard
 from app.schemas.user_movie import RatingWithMovieOut
 from app.services import presenter
 from app.services.localization import to_iso2
-from app.services.movie_service import MovieService
+from app.services.movie_service import MovieNotFound, MovieService
 
 
 class UserMovieService:
@@ -33,21 +33,37 @@ class UserMovieService:
     # ------------ membership actions ------------
 
     def add_favorite(self, user: User, tmdb_id: int) -> None:
-        self._ensure_movie_cached(tmdb_id, user)
+        self._ensure_movie_exists(tmdb_id)
         self.favorites.add(user.id, tmdb_id)
 
     def remove_favorite(self, user: User, tmdb_id: int) -> None:
         self.favorites.remove(user.id, tmdb_id)
 
+    def add_favorites_batch(self, user: User, tmdb_ids: list[int]) -> int:
+        # Onboarding: add the picked movies as favorites. Unknown ids are
+        # skipped silently so a stale pick never blocks the flow.
+        valid = self.movies.repo.existing_ids(tmdb_ids)
+        added = 0
+        for tmdb_id in tmdb_ids:
+            if tmdb_id in valid:
+                self.favorites.add(user.id, tmdb_id)
+                added += 1
+        return added
+
+    # ------------ onboarding ------------
+
+    def needs_onboarding(self, user: User) -> bool:
+        return not self.favorites.has_any(user.id)
+
     def add_to_watchlist(self, user: User, tmdb_id: int) -> None:
-        self._ensure_movie_cached(tmdb_id, user)
+        self._ensure_movie_exists(tmdb_id)
         self.watchlist.add(user.id, tmdb_id)
 
     def remove_from_watchlist(self, user: User, tmdb_id: int) -> None:
         self.watchlist.remove(user.id, tmdb_id)
 
     def mark_watched(self, user: User, tmdb_id: int) -> None:
-        self._ensure_movie_cached(tmdb_id, user)
+        self._ensure_movie_exists(tmdb_id)
         self.watched.add(user.id, tmdb_id)
 
     def unmark_watched(self, user: User, tmdb_id: int) -> None:
@@ -58,7 +74,7 @@ class UserMovieService:
     def set_rating(
         self, user: User, tmdb_id: int, stars: float, review: str | None = None
     ) -> None:
-        self._ensure_movie_cached(tmdb_id, user)
+        self._ensure_movie_exists(tmdb_id)
         half_stars = round(stars * 2)
         self.ratings.upsert(user.id, tmdb_id, half_stars, review)
 
@@ -113,6 +129,6 @@ class UserMovieService:
 
     # ------------ internals ------------
 
-    def _ensure_movie_cached(self, tmdb_id: int, user: User) -> None:
+    def _ensure_movie_exists(self, tmdb_id: int) -> None:
         if not self.movies.repo.exists(tmdb_id):
-            self.movies.get_movie_details(tmdb_id, language=user.language)
+            raise MovieNotFound(tmdb_id)

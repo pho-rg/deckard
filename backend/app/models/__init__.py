@@ -11,7 +11,6 @@ from app.models.movie_crew import MovieCrew
 from app.models.movie_genre import MovieGenre
 from app.models.movie_vector import MovieVector
 from app.models.person import Person
-from app.models.person_content import PersonContent
 from app.models.rating import Rating
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
@@ -35,7 +34,6 @@ __all__ = [
     "MovieStatus",
     "MovieVector",
     "Person",
-    "PersonContent",
     "Rating",
     "RefreshToken",
     "User",

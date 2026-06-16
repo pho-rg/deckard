@@ -52,28 +52,24 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      if (_isLogin) {
-        await AuthService.login(
-            _emailCtrl.text.trim(), _passwordCtrl.text);
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const MainNavigation()),
-            (_) => false,
-          );
-        }
-      } else {
-        await AuthService.register(
-          _emailCtrl.text.trim(),
-          _usernameCtrl.text.trim(),
-          _passwordCtrl.text,
+      final needsOnboarding = _isLogin
+          ? await AuthService.login(
+              _emailCtrl.text.trim(), _passwordCtrl.text)
+          : await AuthService.register(
+              _emailCtrl.text.trim(),
+              _usernameCtrl.text.trim(),
+              _passwordCtrl.text,
+            );
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => needsOnboarding
+                ? const OnboardingScreen()
+                : const MainNavigation(),
+          ),
+          (_) => false,
         );
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-          );
-        }
       }
     } catch (e) {
       setState(() {

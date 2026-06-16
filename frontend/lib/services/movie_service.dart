@@ -2,8 +2,30 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/services.dart';
 import '../models/movie.dart';
+import '../models/profile_models.dart';
+import 'api_service.dart';
 
 class MovieService {
+  static final _api = ApiService();
+
+  static const _onboardingListAsset = 'lib/data/onboarding_movies.json';
+
+  /// Onboarding grid: read the fixed tmdb_id list bundled with the app, then
+  /// resolve them to cards via the backend (DB-backed, no TMDB).
+  /// POST /movies/by-ids { tmdb_ids: [...] } → list<MovieCard>
+  static Future<List<ProfileMovieCard>> getOnboardingMovies() async {
+    final raw = await rootBundle.loadString(_onboardingListAsset);
+    final tmdbIds = (json.decode(raw) as List)
+        .map((e) => (e as num).toInt())
+        .toList();
+    if (tmdbIds.isEmpty) return [];
+
+    final data = await _api.post('/movies/by-ids', {'tmdb_ids': tmdbIds});
+    return (data as List)
+        .map((m) => ProfileMovieCard.fromJson(m as Map<String, dynamic>))
+        .toList();
+  }
+
   static Future<List<Movie>> getMockMovies() async {
     try {
       final String response = await rootBundle.loadString('lib/fake_data/raw_movie_data_test.jsonl');

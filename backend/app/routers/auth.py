@@ -4,15 +4,23 @@ from app.deps import CurrentUser, DbSession
 from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse
 from app.schemas.user import UserOut
 from app.services.auth_service import AuthService
+from app.services.user_movie_service import UserMovieService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _user_out(db, user) -> UserOut:
+    out = UserOut.model_validate(user)
+    out.needs_onboarding = UserMovieService(db).needs_onboarding(user)
+    return out
+
+
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, db: DbSession):
-    return AuthService(db).register(
+    user = AuthService(db).register(
         email=payload.email, username=payload.username, password=payload.password
     )
+    return _user_out(db, user)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -35,5 +43,5 @@ def logout(payload: RefreshRequest, db: DbSession):
 
 
 @router.get("/me", response_model=UserOut)
-def me(current_user: CurrentUser):
-    return current_user
+def me(db: DbSession, current_user: CurrentUser):
+    return _user_out(db, current_user)

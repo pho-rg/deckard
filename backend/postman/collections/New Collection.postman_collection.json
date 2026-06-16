@@ -24,12 +24,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:8000/api/v1/auth/register",
-              "protocol": "http",
+              "raw": "{{baseUrl}}:{{port}}/api/v1/auth/register",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
+              "port": "{{port}}",
               "path": [
                 "api",
                 "v1",
@@ -56,12 +55,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:8000/api/v1/auth/login",
-              "protocol": "http",
+              "raw": "{{baseUrl}}:{{port}}/api/v1/auth/login",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
+              "port": "{{port}}",
               "path": [
                 "api",
                 "v1",
@@ -225,22 +223,69 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/movies/:id",
-              "protocol": "http",
+              "raw": "{{baseUrl}}:{{port}}/api/v1/movies/:id",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
+              "port": "{{port}}",
               "path": [
                 "api",
                 "v1",
                 "movies",
                 ":id"
               ],
+              "query": [
+                {
+                  "key": null,
+                  "value": "",
+                  "type": "text",
+                  "uuid": "49760d5d-2b07-41dd-be3f-f5ddc4bc05c4",
+                  "disabled": true
+                }
+              ],
               "variable": [
                 {
                   "key": "id",
-                  "value": "6977"
+                  "value": "550",
+                  "uuid": "d95b3f77-81ad-4732-9ed7-311ac581db47"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "movie list",
+          "id": "1e23e239-b487-453a-b240-fa60332fd14a",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}:{{port}}/api/v1/movies/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ":id"
+              ],
+              "query": [
+                {
+                  "key": null,
+                  "value": "",
+                  "type": "text",
+                  "uuid": "49760d5d-2b07-41dd-be3f-f5ddc4bc05c4",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "550",
+                  "uuid": "d95b3f77-81ad-4732-9ed7-311ac581db47"
                 }
               ]
             }
@@ -586,7 +631,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"language\": \"fr-FR\",\r\n  \"region\": \"FR\"\r\n}",
+              "raw": "{\r\n  \"language\": \"en-US\",\r\n  \"region\": \"US\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -617,12 +662,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/users/me/favorites",
-              "protocol": "http",
+              "raw": "{{baseUrl}}:{{port}}/api/v1/users/me/favorites",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
+              "port": "{{port}}",
               "path": [
                 "api",
                 "v1",
@@ -1083,7 +1127,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzOGY1ODkwOC03NzQ4LTQyNWItYTZmYS02MjM3MjRmOTZiODIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzgxNTEzMDI4LCJleHAiOjE3ODE1MTM5Mjh9.NUxLDWRD1VVjoMqBXVLAeX6jRJa1ofRTWrK5qaqCx9U",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxZjNkMzYwMC04ODY2LTQwYjgtOGE3NS1jYTFhODJlODgzMjkiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzgxNjQxMDU5LCJleHAiOjE3ODE2NDE5NTl9.jUTl8_gAedXvJwT9m7a6MGx1H5mzE79te3XjMRSiuEY",
         "type": "string"
       }
     ]

@@ -13,6 +13,10 @@ class UserOut(BaseModel):
     language: str
     region: str
     created_at: datetime
+    needs_onboarding: bool = Field(
+        default=False,
+        description="True when the user has no favorites yet → show onboarding",
+    )
 
 
 class UserUpdate(BaseModel):
