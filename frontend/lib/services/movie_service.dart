@@ -26,6 +26,78 @@ class MovieService {
         .toList();
   }
 
+  /// Full movie detail (DB-backed): genres, cast, crew, trailer.
+  /// GET /movies/{tmdb_id} -> MovieDetailOut
+  static Future<Movie> getMovieDetail(int tmdbId) async {
+    final data = await _api.get('/movies/$tmdbId');
+    return Movie.fromDetail(data as Map<String, dynamic>);
+  }
+
+  /// The signed-in user's relationship to a movie.
+  /// GET /movies/{tmdb_id}/user-state -> UserStateOut
+  static Future<MovieUserState> getUserState(int tmdbId) async {
+    final data = await _api.get('/movies/$tmdbId/user-state');
+    return MovieUserState.fromJson(data as Map<String, dynamic>);
+  }
+
+  // ---- favorite ----
+  static Future<void> addFavorite(int tmdbId) async {
+    await _api.post('/movies/$tmdbId/favorite', {});
+  }
+
+  static Future<void> removeFavorite(int tmdbId) async {
+    await _api.delete('/movies/$tmdbId/favorite');
+  }
+
+  // ---- watched ----
+  static Future<void> markWatched(int tmdbId) async {
+    await _api.post('/movies/$tmdbId/watched', {});
+  }
+
+  static Future<void> unmarkWatched(int tmdbId) async {
+    await _api.delete('/movies/$tmdbId/watched');
+  }
+
+  // ---- rating + review ----
+  /// PUT /movies/{tmdb_id}/rating { stars, review }
+  static Future<void> setRating(int tmdbId, double stars, String? review) async {
+    await _api.put('/movies/$tmdbId/rating', {
+      'stars': stars,
+      if (review != null && review.isNotEmpty) 'review': review,
+    });
+  }
+
+  static Future<void> removeRating(int tmdbId) async {
+    await _api.delete('/movies/$tmdbId/rating');
+  }
+
+  /// The signed-in user's watchlist (DB-backed).
+  /// GET /users/me/watchlist → list<MovieCard>
+  static Future<List<Movie>> getWatchlist() async {
+    final data = await _api.get('/users/me/watchlist');
+    return (data as List)
+        .map((m) => Movie.fromCard(m as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Add a movie to the signed-in user's watchlist.
+  /// POST /movies/{tmdb_id}/watchlist
+  static Future<void> addToWatchlist(int tmdbId) async {
+    await _api.post('/movies/$tmdbId/watchlist', {});
+  }
+
+  /// Remove a movie from the signed-in user's watchlist.
+  /// DELETE /movies/{tmdb_id}/watchlist
+  static Future<void> removeFromWatchlist(int tmdbId) async {
+    await _api.delete('/movies/$tmdbId/watchlist');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mock data — still used by screens not yet wired to the backend
+  // (search, recommendations, discovery, profile, friends, person, detail's
+  // similar-movies). To be removed as each screen is migrated.
+  // ---------------------------------------------------------------------------
+
   static Future<List<Movie>> getMockMovies() async {
     try {
       final String response = await rootBundle.loadString('lib/fake_data/raw_movie_data_test.jsonl');
@@ -48,7 +120,7 @@ class MovieService {
       // Randomize the list and pick a subset between 50 and 80
       final random = Random();
       final int count = 50 + random.nextInt(31); // 50 to 80
-      
+
       allMovies.shuffle(random);
       return allMovies.take(min(count, allMovies.length)).toList();
     } catch (e) {

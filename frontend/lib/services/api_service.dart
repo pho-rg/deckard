@@ -51,6 +51,14 @@ class ApiService {
     return _handle(response);
   }
 
+  Future<dynamic> delete(String endpoint) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: _headers,
+    );
+    return _handle(response);
+  }
+
   /// Vérifie le statut HTTP et décode le corps JSON.
   /// En cas d'erreur, remonte le message `detail` renvoyé par FastAPI.
   dynamic _handle(http.Response response) {

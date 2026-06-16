@@ -35,13 +35,117 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   bool _isLiked = false;
   bool _isInWatchlist = false;
 
+  late Movie _movie;
+  bool _loadingDetail = true;
+
   @override
   void initState() {
     super.initState();
+    _movie = widget.movie;
     _tabController = TabController(length: 4, vsync: this);
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
     _generateMockData();
+    _fetchDetail();
+    _fetchUserState();
+  }
+
+  /// Load the full movie (genres/cast/crew/trailer) from the DB-backed API.
+  Future<void> _fetchDetail() async {
+    try {
+      final full = await MovieService.getMovieDetail(_movie.id);
+      if (mounted) {
+        setState(() {
+          _movie = full;
+          _loadingDetail = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loadingDetail = false);
+    }
+  }
+
+  /// Load the signed-in user's state for this movie (favorite/watchlist/
+  /// watched/rating/review).
+  Future<void> _fetchUserState() async {
+    try {
+      final s = await MovieService.getUserState(_movie.id);
+      if (mounted) {
+        setState(() {
+          _isLiked = s.isFavorite;
+          _isInWatchlist = s.inWatchlist;
+          _isWatched = s.isWatched;
+          _userRating = s.userRating ?? 0.0;
+          if (s.userReview != null) _reviewController.text = s.userReview!;
+        });
+      }
+    } catch (_) {
+      // Non-blocking: leave defaults if the state can't be fetched.
+    }
+  }
+
+  void _showError(Object e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$e')),
+    );
+  }
+
+  Future<void> _toggleFavorite() async {
+    final next = !_isLiked;
+    try {
+      if (next) {
+        await MovieService.addFavorite(_movie.id);
+      } else {
+        await MovieService.removeFavorite(_movie.id);
+      }
+      if (mounted) setState(() => _isLiked = next);
+    } catch (e) {
+      _showError(e);
+    }
+  }
+
+  Future<void> _toggleWatchlist() async {
+    final next = !_isInWatchlist;
+    try {
+      if (next) {
+        await MovieService.addToWatchlist(_movie.id);
+      } else {
+        await MovieService.removeFromWatchlist(_movie.id);
+      }
+      if (mounted) setState(() => _isInWatchlist = next);
+    } catch (e) {
+      _showError(e);
+    }
+  }
+
+  Future<void> _toggleWatched() async {
+    final next = !_isWatched;
+    try {
+      if (next) {
+        await MovieService.markWatched(_movie.id);
+      } else {
+        await MovieService.unmarkWatched(_movie.id);
+      }
+      if (mounted) setState(() => _isWatched = next);
+    } catch (e) {
+      _showError(e);
+    }
+  }
+
+  Future<void> _submitRating() async {
+    try {
+      await MovieService.setRating(
+        _movie.id,
+        _userRating,
+        _reviewController.text.trim().isEmpty
+            ? null
+            : _reviewController.text.trim(),
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      _showError(e);
+    }
   }
 
   void _onScroll() {
@@ -82,7 +186,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Future<void> _launchTrailer() async {
-    final url = widget.movie.officialTrailerUrl;
+    final url = _movie.officialTrailerUrl;
     if (url != null) {
       final uri = Uri.parse(url);
       try {
@@ -97,7 +201,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final directorCrew = widget.movie.crew?.firstWhere(
+    final directorCrew = _movie.crew?.firstWhere(
       (c) => c.job == 'Director',
       orElse: () => Crew(id: 0, name: 'Unknown', job: '', department: ''),
     );
@@ -151,7 +255,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
         duration: const Duration(milliseconds: 200),
         opacity: _showAppBarTitle ? 1.0 : 0.0,
         child: Text(
-          widget.movie.title.toUpperCase(),
+          _movie.title.toUpperCase(),
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -164,7 +268,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
           fit: StackFit.expand,
           children: [
             CachedNetworkImage(
-              imageUrl: widget.movie.backdropUrl,
+              imageUrl: _movie.backdropUrl,
               fit: BoxFit.cover,
             ),
             Container(
@@ -192,14 +296,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          MovieCard(movie: widget.movie, width: 100),
+          MovieCard(movie: _movie, width: 100),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.movie.title.toUpperCase(),
+                  _movie.title.toUpperCase(),
                   style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -209,7 +313,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                 Row(
                   children: [
                     Text(
-                      '${widget.movie.releaseDate?.split('-').first ?? 'N/A'} • ',
+                      '${_movie.releaseDate?.split('-').first ?? 'N/A'} • ',
                       style: const TextStyle(
                           color: Colors.white70, fontSize: 14),
                     ),
@@ -256,14 +360,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (widget.movie.overview != null)
+                if (_movie.overview != null)
                   GestureDetector(
                     onTap: () => setState(() => _isSynopsisExpanded = true),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
-                          widget.movie.overview!,
+                          _movie.overview!,
                           style: const TextStyle(color: Colors.white60, fontSize: 14, height: 1.4),
                           maxLines: _isSynopsisExpanded ? null : 4,
                           overflow: _isSynopsisExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
@@ -431,12 +535,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    widget.movie.title,
+                    _movie.title,
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   Text(
-                    widget.movie.releaseDate?.split('-').first ?? '',
+                    _movie.releaseDate?.split('-').first ?? '',
                     style: const TextStyle(color: Colors.white38),
                   ),
                   const SizedBox(height: 30),
@@ -447,19 +551,28 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                         _isWatched ? Icons.visibility : Icons.visibility_outlined,
                         _isWatched ? l10n.watched : l10n.watch,
                         _isWatched,
-                        () => setModalState(() => _isWatched = !_isWatched),
+                        () async {
+                          await _toggleWatched();
+                          setModalState(() {});
+                        },
                       ),
                       _buildModalAction(
                         _isLiked ? Icons.favorite : Icons.favorite_border,
                         _isLiked ? l10n.liked : l10n.like,
                         _isLiked,
-                        () => setModalState(() => _isLiked = !_isLiked),
+                        () async {
+                          await _toggleFavorite();
+                          setModalState(() {});
+                        },
                       ),
                       _buildModalAction(
                         _isInWatchlist ? Icons.history_toggle_off : Icons.history_toggle_off,
                         l10n.watchlistAdd,
                         _isInWatchlist,
-                        () => setModalState(() => _isInWatchlist = !_isInWatchlist),
+                        () async {
+                          await _toggleWatchlist();
+                          setModalState(() {});
+                        },
                       ),
                     ],
                   ),
@@ -489,7 +602,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: _submitRating,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.secondaryPurple,
                           foregroundColor: Colors.white,
@@ -616,8 +729,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Widget _buildCastList() {
-    final cast = widget.movie.cast ?? [];
-    if (cast.isEmpty) return const Center(child: Text('No data', style: TextStyle(color: Colors.white38)));
+    final cast = _movie.cast ?? [];
+    if (cast.isEmpty) {
+      return Center(
+        child: _loadingDetail
+            ? const CircularProgressIndicator()
+            : const Text('No data', style: TextStyle(color: Colors.white38)),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       itemCount: cast.length,
@@ -692,8 +811,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Widget _buildCrewList() {
-    final crew = widget.movie.crew ?? [];
-    if (crew.isEmpty) return const Center(child: Text('No data', style: TextStyle(color: Colors.white38)));
+    final crew = _movie.crew ?? [];
+    if (crew.isEmpty) {
+      return Center(
+        child: _loadingDetail
+            ? const CircularProgressIndicator()
+            : const Text('No data', style: TextStyle(color: Colors.white38)),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       itemCount: min(20, crew.length),
@@ -793,7 +918,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Widget _buildGenreList() {
-    final genres = widget.movie.genres ?? [];
+    final genres = _movie.genres ?? [];
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Wrap(
@@ -813,9 +938,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _detailItem(l10n.originalTitle, widget.movie.title),
-        _detailItem(l10n.releaseDate, widget.movie.releaseDate ?? 'N/A'),
-        _detailItem(l10n.popularity, widget.movie.popularity?.toString() ?? 'N/A'),
+        _detailItem(l10n.originalTitle, _movie.title),
+        _detailItem(l10n.releaseDate, _movie.releaseDate ?? 'N/A'),
+        _detailItem(l10n.popularity, _movie.popularity?.toString() ?? 'N/A'),
       ],
     );
   }
@@ -859,7 +984,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                 context,
                 MaterialPageRoute(
                   builder: (_) => AllReviewsScreen(
-                    movie: widget.movie,
+                    movie: _movie,
                     reviews: mockReviews,
                   ),
                 ),

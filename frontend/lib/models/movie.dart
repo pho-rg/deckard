@@ -35,6 +35,7 @@ class Cast {
 
   String get profileUrl {
     if (profilePath == null) return 'https://via.placeholder.com/185x278?text=No+Image';
+    if (profilePath!.startsWith('http')) return profilePath!;
     return 'https://image.tmdb.org/t/p/w185$profilePath';
   }
 }
@@ -61,6 +62,7 @@ class Crew {
 
   String get profileUrl {
     if (profilePath == null || profilePath!.isEmpty) return '';
+    if (profilePath!.startsWith('http')) return profilePath!;
     return 'https://image.tmdb.org/t/p/w185$profilePath';
   }
 }
@@ -145,6 +147,82 @@ class Movie {
   factory Movie.fromJson(Map<String, dynamic> json) => _$MovieFromJson(json);
   Map<String, dynamic> toJson() => _$MovieToJson(this);
 
+  /// Build a Movie from the backend `MovieCard` shape (DB-backed):
+  /// { tmdb_id, title, original_title, overview, release_date,
+  ///   vote_average, poster_url, backdrop_url }.
+  /// The URL fields are already absolute; posterUrl/backdropUrl getters
+  /// pass http URLs through unchanged.
+  factory Movie.fromCard(Map<String, dynamic> json) {
+    return Movie(
+      id: json['tmdb_id'] as int,
+      title: (json['title'] ?? json['original_title'] ?? '') as String,
+      posterPath: json['poster_url'] as String?,
+      backdropPath: json['backdrop_url'] as String?,
+      overview: json['overview'] as String?,
+      releaseDate: json['release_date'] as String?,
+      voteAverage: (json['vote_average'] as num?)?.toDouble(),
+    );
+  }
+
+  /// Build a Movie from the backend `MovieDetailOut` shape (DB-backed, full):
+  /// genres [{tmdb_id, name}], cast [{person:{tmdb_id,name,profile_url},
+  /// character, order}], crew [{person:{...}, job, department}], and
+  /// trailer_youtube_key. URL fields are absolute (getters pass them through).
+  factory Movie.fromDetail(Map<String, dynamic> json) {
+    final genresJson = (json['genres'] as List?) ?? const [];
+    final castJson = (json['cast'] as List?) ?? const [];
+    final crewJson = (json['crew'] as List?) ?? const [];
+    final trailerKey = json['trailer_youtube_key'] as String?;
+
+    return Movie(
+      id: json['tmdb_id'] as int,
+      title: (json['title'] ?? json['original_title'] ?? '') as String,
+      posterPath: json['poster_url'] as String?,
+      backdropPath: json['backdrop_url'] as String?,
+      overview: json['overview'] as String?,
+      releaseDate: json['release_date'] as String?,
+      voteAverage: (json['vote_average'] as num?)?.toDouble(),
+      genres: genresJson
+          .map((g) => Genre(
+                id: (g['tmdb_id'] as num).toInt(),
+                name: (g['name'] ?? '') as String,
+              ))
+          .toList(),
+      cast: castJson.map((c) {
+        final p = c['person'] as Map<String, dynamic>;
+        return Cast(
+          id: (p['tmdb_id'] as num).toInt(),
+          name: (p['name'] ?? '') as String,
+          character: (c['character'] ?? '') as String,
+          profilePath: p['profile_url'] as String?,
+          order: (c['order'] as num?)?.toInt() ?? 0,
+        );
+      }).toList(),
+      crew: crewJson.map((c) {
+        final p = c['person'] as Map<String, dynamic>;
+        return Crew(
+          id: (p['tmdb_id'] as num).toInt(),
+          name: (p['name'] ?? '') as String,
+          job: (c['job'] ?? '') as String,
+          department: (c['department'] ?? '') as String,
+          profilePath: p['profile_url'] as String?,
+        );
+      }).toList(),
+      trailers: (trailerKey != null && trailerKey.isNotEmpty)
+          ? [
+              Video(
+                id: trailerKey,
+                key: trailerKey,
+                name: 'Trailer',
+                site: 'YouTube',
+                type: 'Trailer',
+                official: true,
+              )
+            ]
+          : null,
+    );
+  }
+
   String get posterUrl {
     if (posterPath == null) return 'https://via.placeholder.com/500x750?text=No+Poster';
     if (posterPath!.startsWith('http')) return posterPath!;
@@ -162,4 +240,39 @@ class Movie {
     final official = trailers!.firstWhere((v) => v.official, orElse: () => trailers!.first);
     return official.youtubeUrl;
   }
+}
+
+/// The signed-in user's relationship to a movie.
+/// Maps the backend `UserStateOut`:
+/// { is_favorite, in_watchlist, is_watched, user_rating, user_review }.
+class MovieUserState {
+  final bool isFavorite;
+  final bool inWatchlist;
+  final bool isWatched;
+  final double? userRating; // 0.0–5.0 in 0.5 steps, or null
+  final String? userReview;
+
+  MovieUserState({
+    required this.isFavorite,
+    required this.inWatchlist,
+    required this.isWatched,
+    this.userRating,
+    this.userReview,
+  });
+
+  factory MovieUserState.fromJson(Map<String, dynamic> json) {
+    return MovieUserState(
+      isFavorite: json['is_favorite'] as bool? ?? false,
+      inWatchlist: json['in_watchlist'] as bool? ?? false,
+      isWatched: json['is_watched'] as bool? ?? false,
+      userRating: (json['user_rating'] as num?)?.toDouble(),
+      userReview: json['user_review'] as String?,
+    );
+  }
+
+  static MovieUserState empty() => MovieUserState(
+        isFavorite: false,
+        inWatchlist: false,
+        isWatched: false,
+      );
 }
