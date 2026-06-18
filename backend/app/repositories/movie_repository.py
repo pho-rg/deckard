@@ -111,7 +111,11 @@ class MovieRepository:
                 .outerjoin(MovieContent, MovieContent.tmdb_id == Movie.tmdb_id)
                 .where(match)
                 .options(*_SUMMARY_OPTIONS)
-                .order_by(Movie.vote_average.desc().nullslast(), Movie.tmdb_id.desc())
+                .order_by(
+                    Movie.vote_average.desc().nullslast(),
+                    Movie.release_date.desc().nullslast(),
+                    Movie.tmdb_id.desc(),
+                )
                 .distinct()
                 .limit(page_size)
                 .offset((page - 1) * page_size)
@@ -120,3 +124,75 @@ class MovieRepository:
             .all()
         )
         return list(rows), total
+
+    # ------------ people ------------
+
+    def search_persons(
+        self, query: str, *, page: int = 1, page_size: int = 20
+    ) -> tuple[list[Person], int]:
+        """Search the catalogue's persons (cast & crew) by name."""
+        pattern = f"%{query.strip()}%"
+        match = Person.name.ilike(pattern)
+
+        total = self.db.scalar(
+            select(func.count()).select_from(Person).where(match)
+        ) or 0
+        if total == 0:
+            return [], 0
+
+        # Popularity proxy: number of appearances (cast + crew) in our catalogue.
+        appearances = (
+            select(MovieCast.person_id.label("pid"))
+            .union_all(select(MovieCrew.person_id))
+            .subquery()
+        )
+        counts = (
+            select(
+                appearances.c.pid.label("pid"),
+                func.count().label("n"),
+            )
+            .group_by(appearances.c.pid)
+            .subquery()
+        )
+
+        rows = self.db.scalars(
+            select(Person)
+            .outerjoin(counts, counts.c.pid == Person.tmdb_id)
+            .where(match)
+            .order_by(
+                func.coalesce(counts.c.n, 0).desc(),
+                Person.name.asc(),
+                Person.tmdb_id.asc(),
+            )
+            .limit(page_size)
+            .offset((page - 1) * page_size)
+        ).all()
+        return list(rows), total
+
+    def get_person(self, person_id: int) -> Person | None:
+        return self.db.get(Person, person_id)
+
+    def filmography(self, person_id: int, *, limit: int = 100) -> list[Movie]:
+        """Movies featuring the person as either cast or crew."""
+        cast_ids = select(MovieCast.movie_id).where(
+            MovieCast.person_id == person_id
+        )
+        crew_ids = select(MovieCrew.movie_id).where(
+            MovieCrew.person_id == person_id
+        )
+        movie_ids = cast_ids.union(crew_ids).subquery()
+
+        rows = (
+            self.db.scalars(
+                select(Movie)
+                .where(Movie.tmdb_id.in_(select(movie_ids.c.movie_id)))
+                .options(*_SUMMARY_OPTIONS)
+                .order_by(
+                    Movie.release_date.desc().nullslast(), Movie.tmdb_id.desc()
+                )
+                .limit(limit)
+            )
+            .unique()
+            .all()
+        )
+        return list(rows)

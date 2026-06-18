@@ -552,14 +552,16 @@ class _PopularGrid extends StatelessWidget {
           final m = movies[i];
           return GestureDetector(
             onTap: () async {
-              final full = await MovieService.getById(m.tmdbId);
-              if (full != null && ctx.mounted) {
-                Navigator.push(
-                  ctx,
-                  MaterialPageRoute(
-                      builder: (_) => MovieDetailScreen(movie: full)),
-                );
-              }
+              try {
+                final full = await MovieService.getMovieDetail(m.tmdbId);
+                if (ctx.mounted) {
+                  Navigator.push(
+                    ctx,
+                    MaterialPageRoute(
+                        builder: (_) => MovieDetailScreen(movie: full)),
+                  );
+                }
+              } catch (_) {/* film introuvable, on ignore */}
             },
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),

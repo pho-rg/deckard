@@ -83,24 +83,17 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
     } else {
       final uid = widget.userId!;
-      final stub = ProfileUser(
-        id: uid,
-        username: widget.initialUsername ?? uid,
-        email: '',
-        language: '',
-        region: '',
-        createdAt: DateTime.now(),
-      );
       final results = await Future.wait([
+        _service.getUser(uid),
         _service.getUserFavorites(uid),
         _service.getUserWatched(uid),
         _service.getUserRatings(uid),
       ]);
       return _ProfileData(
-        user: stub,
-        favorites: results[0] as List<ProfileMovieCard>,
-        watched: results[1] as List<ProfileMovieCard>,
-        ratings: results[2] as List<ProfileRating>,
+        user: results[0] as ProfileUser,
+        favorites: results[1] as List<ProfileMovieCard>,
+        watched: results[2] as List<ProfileMovieCard>,
+        ratings: results[3] as List<ProfileRating>,
       );
     }
   }
@@ -411,6 +404,25 @@ class _StatItem extends StatelessWidget {
   }
 }
 
+// Fetch the full movie detail from the backend, then open its screen.
+Future<void> _openDetail(BuildContext context, int tmdbId) async {
+  try {
+    final full = await MovieService.getMovieDetail(tmdbId);
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: full)),
+      );
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Film introuvable')),
+      );
+    }
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Movie grid (Favorites + Watched tabs)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -469,15 +481,7 @@ class _PosterTile extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: () async {
-        final full = await MovieService.getById(movie.tmdbId);
-        if (full != null && context.mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: full)),
-          );
-        }
-      },
+      onTap: () => _openDetail(context, movie.tmdbId),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4),
         child: image,
@@ -535,15 +539,7 @@ class _RatingTile extends StatelessWidget {
     final posterUrl = movie.posterUrl;
 
     return GestureDetector(
-      onTap: () async {
-        final full = await MovieService.getById(movie.tmdbId);
-        if (full != null && context.mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: full)),
-          );
-        }
-      },
+      onTap: () => _openDetail(context, movie.tmdbId),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(

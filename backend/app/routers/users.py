@@ -1,12 +1,12 @@
 import uuid
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.deps import CurrentUser, DbSession
 from app.repositories.user_repository import UserRepository
 from app.schemas.friend import UserPublicOut
 from app.schemas.movie import MovieCard
-from app.schemas.user import UserOut, UserUpdate
+from app.schemas.user import UserOut, UserProfileOut, UserUpdate
 from app.schemas.user_movie import FavoriteBatchIn, RatingWithMovieOut
 from app.services.friendship_service import FriendshipService
 from app.services.user_movie_service import UserMovieService
@@ -27,6 +27,24 @@ def get_me(db: DbSession, current_user: CurrentUser):
 
 @router.put("/me", response_model=UserOut)
 def update_me(payload: UserUpdate, db: DbSession, current_user: CurrentUser):
+    repo = UserRepository(db)
+
+    if payload.username is not None and payload.username != current_user.username:
+        existing = repo.get_by_username(payload.username)
+        if existing is not None and existing.id != current_user.id:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Username already taken"
+            )
+        current_user.username = payload.username
+
+    if payload.email is not None and payload.email != current_user.email:
+        existing = repo.get_by_email(payload.email)
+        if existing is not None and existing.id != current_user.id:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Email already in use"
+            )
+        current_user.email = payload.email
+
     if payload.language is not None:
         current_user.language = payload.language
     if payload.region is not None:
@@ -77,6 +95,15 @@ def search_users(
 
 
 # ---- Other users' collections (gated by friendship, localized for the viewer) ----
+
+
+@router.get("/{user_id}", response_model=UserProfileOut)
+def get_user_profile(user_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
+    FriendshipService(db).assert_can_view_profile(current_user, user_id)
+    user = UserRepository(db).get_by_id(user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    return user
 
 
 @router.get("/{user_id}/favorites", response_model=list[MovieCard])

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import ClassVar
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
@@ -80,3 +80,22 @@ class WatchlistRepository(_UserMovieFlagRepository):
 class WatchedRepository(_UserMovieFlagRepository):
     model = WatchedItem
     timestamp_col_name = "watched_at"
+
+    def list_recent_for_users(
+        self, user_ids: list[uuid.UUID], *, limit: int = 12
+    ) -> list[Movie]:
+        # Distinct movies watched by any of the given users, most recently
+        # watched first. Aggregates across several friends (max watched_at).
+        if not user_ids:
+            return []
+        latest = func.max(WatchedItem.watched_at)
+        rows = self.db.execute(
+            select(Movie)
+            .join(WatchedItem, WatchedItem.movie_id == Movie.tmdb_id)
+            .where(WatchedItem.user_id.in_(user_ids))
+            .group_by(Movie.tmdb_id)
+            .order_by(latest.desc())
+            .limit(limit)
+            .options(selectinload(Movie.contents))
+        ).all()
+        return [r[0] for r in rows]

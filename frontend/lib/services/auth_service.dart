@@ -62,19 +62,37 @@ class AuthService {
         await _api.post('/auth/logout', {'refresh_token': refresh});
       } catch (_) {/* on déconnecte localement quoi qu'il arrive */}
     }
+    await clearLocalSession();
+  }
+
+  /// Purge la session locale (tokens + en-tête API), sans appel serveur.
+  /// Utilisé au logout, sur token invalide au démarrage, et sur 401.
+  static Future<void> clearLocalSession() async {
     await _storage.delete(key: _accessKey);
     await _storage.delete(key: _refreshKey);
     ApiService.token = null;
   }
 
-  /// Appelé au démarrage. Restaure le token s'il existe.
+  /// Appelé au démarrage. Restaure le token ET le valide auprès du backend.
+  /// → token absent : false (login)
+  /// → token présent mais invalide/expiré (401) : purge + false (login)
+  /// → token valide : true (accès à l'app)
   static Future<bool> tryRestoreToken() async {
     final token = await _storage.read(key: _accessKey);
-    if (token != null) {
-      ApiService.token = token;
+    if (token == null) return false;
+    ApiService.token = token;
+    try {
+      await _api.get('/users/me'); // valide réellement le token
       return true;
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        await clearLocalSession();
+      }
+      return false;
+    } catch (_) {
+      // Backend injoignable / erreur réseau : on n'entre pas dans l'app.
+      return false;
     }
-    return false;
   }
 
   static Future<void> _persistTokens(String access, String refresh) async {

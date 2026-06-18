@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.integrations.tmdb import TMDBClient
 from app.models.user import User
+from app.repositories.friendship_repository import FriendshipRepository
 from app.repositories.rating_repository import RatingRepository
 from app.repositories.user_movie_flag import (
     FavoriteRepository,
@@ -104,6 +105,16 @@ class UserMovieService:
 
     def list_ratings(self, user: User) -> list[RatingWithMovieOut]:
         return self.list_ratings_for(user.id, user.language)
+
+    def popular_among_friends(
+        self, user: User, *, limit: int = 12
+    ) -> list[MovieCard]:
+        # Recently watched movies across the user's friends (deduped).
+        friends = FriendshipRepository(self.db).list_friends(user.id)
+        friend_ids = [f.id for f in friends]
+        iso = to_iso2(user.language)
+        movies = self.watched.list_recent_for_users(friend_ids, limit=limit)
+        return [presenter.movie_card(m, iso) for m in movies]
 
     # by user_id + viewer language — used to expose friends' collections
     def list_favorites_for(self, user_id: uuid.UUID, language: str) -> list[MovieCard]:

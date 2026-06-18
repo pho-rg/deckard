@@ -147,6 +147,19 @@ class Movie {
   factory Movie.fromJson(Map<String, dynamic> json) => _$MovieFromJson(json);
   Map<String, dynamic> toJson() => _$MovieToJson(this);
 
+  /// The backend can serialise numeric fields as either a number or a string
+  /// (e.g. vote_average "7.0"). Coerce both forms safely.
+  static double? _toDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+
+  static int _toInt(dynamic v) {
+    if (v is num) return v.toInt();
+    return int.parse(v.toString());
+  }
+
   /// Build a Movie from the backend `MovieCard` shape (DB-backed):
   /// { tmdb_id, title, original_title, overview, release_date,
   ///   vote_average, poster_url, backdrop_url }.
@@ -154,13 +167,13 @@ class Movie {
   /// pass http URLs through unchanged.
   factory Movie.fromCard(Map<String, dynamic> json) {
     return Movie(
-      id: json['tmdb_id'] as int,
+      id: _toInt(json['tmdb_id']),
       title: (json['title'] ?? json['original_title'] ?? '') as String,
       posterPath: json['poster_url'] as String?,
       backdropPath: json['backdrop_url'] as String?,
       overview: json['overview'] as String?,
       releaseDate: json['release_date'] as String?,
-      voteAverage: (json['vote_average'] as num?)?.toDouble(),
+      voteAverage: _toDouble(json['vote_average']),
     );
   }
 
@@ -175,33 +188,33 @@ class Movie {
     final trailerKey = json['trailer_youtube_key'] as String?;
 
     return Movie(
-      id: json['tmdb_id'] as int,
+      id: _toInt(json['tmdb_id']),
       title: (json['title'] ?? json['original_title'] ?? '') as String,
       posterPath: json['poster_url'] as String?,
       backdropPath: json['backdrop_url'] as String?,
       overview: json['overview'] as String?,
       releaseDate: json['release_date'] as String?,
-      voteAverage: (json['vote_average'] as num?)?.toDouble(),
+      voteAverage: _toDouble(json['vote_average']),
       genres: genresJson
           .map((g) => Genre(
-                id: (g['tmdb_id'] as num).toInt(),
+                id: _toInt(g['tmdb_id']),
                 name: (g['name'] ?? '') as String,
               ))
           .toList(),
       cast: castJson.map((c) {
         final p = c['person'] as Map<String, dynamic>;
         return Cast(
-          id: (p['tmdb_id'] as num).toInt(),
+          id: _toInt(p['tmdb_id']),
           name: (p['name'] ?? '') as String,
           character: (c['character'] ?? '') as String,
           profilePath: p['profile_url'] as String?,
-          order: (c['order'] as num?)?.toInt() ?? 0,
+          order: _toDouble(c['order'])?.toInt() ?? 0,
         );
       }).toList(),
       crew: crewJson.map((c) {
         final p = c['person'] as Map<String, dynamic>;
         return Crew(
-          id: (p['tmdb_id'] as num).toInt(),
+          id: _toInt(p['tmdb_id']),
           name: (p['name'] ?? '') as String,
           job: (c['job'] ?? '') as String,
           department: (c['department'] ?? '') as String,
@@ -275,4 +288,37 @@ class MovieUserState {
         inWatchlist: false,
         isWatched: false,
       );
+}
+
+/// A person (cast or crew) returned by the DB-backed person search.
+/// Maps the backend `PersonCard`:
+/// { tmdb_id, name, known_for_department, profile_url }.
+class PersonResult {
+  final int id;
+  final String name;
+  final String? knownForDepartment;
+  final String? profilePath;
+
+  PersonResult({
+    required this.id,
+    required this.name,
+    this.knownForDepartment,
+    this.profilePath,
+  });
+
+  factory PersonResult.fromJson(Map<String, dynamic> json) {
+    return PersonResult(
+      id: Movie._toInt(json['tmdb_id']),
+      name: (json['name'] ?? '') as String,
+      knownForDepartment: json['known_for_department'] as String?,
+      profilePath: json['profile_url'] as String?,
+    );
+  }
+
+  /// Absolute URL passes through; otherwise build a TMDB profile URL.
+  String get profileUrl {
+    if (profilePath == null || profilePath!.isEmpty) return '';
+    if (profilePath!.startsWith('http')) return profilePath!;
+    return 'https://image.tmdb.org/t/p/w185$profilePath';
+  }
 }

@@ -8,6 +8,7 @@
   "profile": "PROFILE",
   "discover": "DISCOVER",
   "trending": "TRENDING",
+  "nowPlaying": "NOW PLAYING",
   "forYou": "FOR YOU",
   "moviesCount": "{count} MOVIES",
   "@moviesCount": {

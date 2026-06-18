@@ -21,6 +21,12 @@ class FriendRequest {
   final DateTime createdAt;
 
   const FriendRequest({required this.requester, required this.createdAt});
+
+  /// Maps the backend `FriendRequestOut` { requester, addressee, created_at }.
+  factory FriendRequest.fromJson(Map<String, dynamic> json) => FriendRequest(
+        requester: Friend.fromJson(json['requester'] as Map<String, dynamic>),
+        createdAt: DateTime.parse(json['created_at'] as String),
+      );
 }
 
 enum MatchStatus { waiting, voting, finished }

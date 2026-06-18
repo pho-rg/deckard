@@ -146,6 +146,12 @@ abstract class AppLocalizations {
   /// **'TRENDING'**
   String get trending;
 
+  /// No description provided for @nowPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'NOW PLAYING'**
+  String get nowPlaying;
+
   /// No description provided for @forYou.
   ///
   /// In en, this message translates to:

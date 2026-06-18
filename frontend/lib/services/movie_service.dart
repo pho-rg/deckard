@@ -33,6 +33,69 @@ class MovieService {
     return Movie.fromDetail(data as Map<String, dynamic>);
   }
 
+  /// Tendances (source TMDB, mises en cache côté back).
+  /// GET /movies/trending -> PagedMovies { results: [MovieSummary] }
+  static Future<List<Movie>> getTrending() async {
+    final data = await _api.get('/movies/trending');
+    return _cardsFromPaged(data);
+  }
+
+  /// À l'affiche / en salle (source TMDB, mises en cache côté back).
+  /// GET /movies/now-playing -> PagedMovies { results: [MovieSummary] }
+  static Future<List<Movie>> getNowPlaying() async {
+    final data = await _api.get('/movies/now-playing');
+    return _cardsFromPaged(data);
+  }
+
+  /// Film mis en avant (DB). Renvoie null si aucun n'est configuré (404).
+  /// GET /movies/featured -> MovieDetailOut
+  static Future<Movie?> getFeatured() async {
+    try {
+      final data = await _api.get('/movies/featured');
+      return Movie.fromDetail(data as Map<String, dynamic>);
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// Recherche de films (DB, pas TMDB).
+  /// GET /movies/search?q= -> PagedMovies { results: [MovieSummary] }
+  static Future<List<Movie>> searchMovies(String query) async {
+    final data =
+        await _api.get('/movies/search?q=${Uri.encodeQueryComponent(query)}');
+    return _cardsFromPaged(data);
+  }
+
+  /// Recherche de personnes (cast & crew) dans notre catalogue (DB).
+  /// GET /persons/search?q= -> PagedPersons { results: [PersonCard] }
+  static Future<List<PersonResult>> searchPersons(String query) async {
+    final data =
+        await _api.get('/persons/search?q=${Uri.encodeQueryComponent(query)}');
+    final results = (data is Map ? data['results'] as List? : null) ?? const [];
+    return results
+        .map((p) => PersonResult.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Filmographie d'une personne (films où elle apparaît au cast ou crew).
+  /// GET /persons/{id}/filmography -> list<MovieCard>
+  static Future<List<Movie>> getFilmography(int personId) async {
+    final data = await _api.get('/persons/$personId/filmography');
+    return (data as List)
+        .map((m) => Movie.fromCard(m as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// MovieSummary partage la forme de MovieCard (tmdb_id, title, poster_url…),
+  /// donc Movie.fromCard sait la mapper.
+  static List<Movie> _cardsFromPaged(dynamic data) {
+    final results = (data is Map ? data['results'] as List? : null) ?? const [];
+    return results
+        .map((m) => Movie.fromCard(m as Map<String, dynamic>))
+        .toList();
+  }
+
   /// The signed-in user's relationship to a movie.
   /// GET /movies/{tmdb_id}/user-state -> UserStateOut
   static Future<MovieUserState> getUserState(int tmdbId) async {

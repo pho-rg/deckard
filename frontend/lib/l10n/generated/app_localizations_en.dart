@@ -33,6 +33,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trending => 'TRENDING';
 
   @override
+  String get nowPlaying => 'NOW PLAYING';
+
+  @override
   String get forYou => 'FOR YOU';
 
   @override

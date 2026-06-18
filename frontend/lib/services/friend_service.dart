@@ -3,9 +3,10 @@ import 'dart:math';
 import '../models/friend_models.dart';
 import '../models/movie.dart';
 import '../models/profile_models.dart';
+import 'api_service.dart';
 import 'movie_service.dart';
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// ── Mock data (encore utilisé par la partie "match", hors périmètre) ──────────
 
 final _mockMe = Friend(id: 'mock-user-id', username: 'hugo');
 
@@ -16,44 +17,55 @@ final _mockFriends = <Friend>[
   Friend(id: 'f4', username: 'alex_martin'),
 ];
 
-final _mockIncoming = <FriendRequest>[
-  FriendRequest(
-    requester: Friend(id: 'r1', username: 'pierre_dupont'),
-    createdAt: DateTime.now().subtract(const Duration(hours: 3)),
-  ),
-];
-
 // ── Service ───────────────────────────────────────────────────────────────────
 
 class FriendService {
-  // ── Friends list ───────────────────────────────────────────────────────────
+  final _api = ApiService();
 
-  Future<List<Friend>> getMyFriends() async => _mockFriends;
+  // ── Friends list (DB-backed) ─────────────────────────────────────────────────
 
-  Future<List<FriendRequest>> getIncomingRequests() async => _mockIncoming;
+  /// GET /friends -> list<UserPublicOut>
+  Future<List<Friend>> getMyFriends() async {
+    final data = await _api.get('/friends');
+    return (data as List)
+        .map((u) => Friend.fromJson(u as Map<String, dynamic>))
+        .toList();
+  }
 
+  /// GET /friends/requests -> { incoming: [...], outgoing: [...] }
+  /// On n'expose ici que les demandes entrantes (à accepter/refuser).
+  Future<List<FriendRequest>> getIncomingRequests() async {
+    final data = await _api.get('/friends/requests');
+    final incoming = (data is Map ? data['incoming'] as List? : null) ?? const [];
+    return incoming
+        .map((r) => FriendRequest.fromJson(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// POST /friends/requests { username }
   Future<void> sendFriendRequest(String username) async {
-    // TODO: POST /friends/requests  { username }
-    await Future.delayed(const Duration(milliseconds: 500));
+    await _api.post('/friends/requests', {'username': username});
   }
 
+  /// POST /friends/requests/{requester_id}/accept
   Future<void> acceptRequest(String requesterId) async {
-    // TODO: POST /friends/requests/{requester_id}/accept
-    await Future.delayed(const Duration(milliseconds: 300));
+    await _api.post('/friends/requests/$requesterId/accept', {});
   }
 
+  /// POST /friends/requests/{requester_id}/reject
   Future<void> rejectRequest(String requesterId) async {
-    // TODO: POST /friends/requests/{requester_id}/reject
-    await Future.delayed(const Duration(milliseconds: 300));
+    await _api.post('/friends/requests/$requesterId/reject', {});
   }
 
-  // ── Popular with friends ───────────────────────────────────────────────────
+  // ── Popular with friends (DB-backed) ────────────────────────────────────────
 
+  /// GET /friends/popular -> list<MovieCard>
+  /// Derniers films vus par les amis (agrégés, dédupliqués).
   Future<List<ProfileMovieCard>> getPopularWithFriends() async {
-    final movies = await MovieService.getMockMovies();
-    final rng = Random(42);
-    final shuffled = List.of(movies)..shuffle(rng);
-    return shuffled.take(12).map(_toCard).toList();
+    final data = await _api.get('/friends/popular');
+    return (data as List)
+        .map((m) => ProfileMovieCard.fromJson(m as Map<String, dynamic>))
+        .toList();
   }
 
   // ── Match session ──────────────────────────────────────────────────────────

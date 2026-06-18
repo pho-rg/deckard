@@ -21,7 +21,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   late TabController _tabController;
   List<String> _searchHistory = [];
   List<Movie> _movieResults = [];
-  List<dynamic> _peopleResults = [];
+  List<PersonResult> _peopleResults = [];
   List<Movie> _suggestedMovies = [];
   bool _isSearching = false;
   bool _hasSearched = false;
@@ -43,14 +43,14 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
 
   Future<void> _loadSuggestions() async {
-    final movies = await MovieService.getMockMovies();
-    if (mounted) {
-      setState(() {
-        // Mocking newest releases
-        _suggestedMovies = List<Movie>.from(movies)
-          ..sort((a, b) => (b.releaseDate ?? '').compareTo(a.releaseDate ?? ''));
-        _suggestedMovies = _suggestedMovies.take(5).toList();
-      });
+    // New releases = "now playing" (DB-backed via the cached TMDB feed).
+    try {
+      final movies = await MovieService.getNowPlaying();
+      if (mounted) {
+        setState(() => _suggestedMovies = movies.take(5).toList());
+      }
+    } catch (_) {
+      // Suggestions are non-critical; ignore failures.
     }
   }
 
@@ -99,43 +99,24 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       _saveSearchHistory(query);
     }
 
-    MovieService.getMockMovies().then((movies) {
-      final queryLower = query.toLowerCase();
-      
-      final moviesFound = movies.where((m) => 
-        m.title.toLowerCase().contains(queryLower) || 
-        (m.overview?.toLowerCase().contains(queryLower) ?? false)
-      ).toList();
-
-      final Set<int> seenPeopleIds = {};
-      final List<dynamic> peopleFound = [];
-
-      for (var m in movies) {
-        if (m.cast != null) {
-          for (var c in m.cast!) {
-            if (c.name.toLowerCase().contains(queryLower) && !seenPeopleIds.contains(c.id)) {
-              seenPeopleIds.add(c.id);
-              peopleFound.add(c);
-            }
-          }
-        }
-        if (m.crew != null) {
-          for (var cr in m.crew!) {
-            if (cr.name.toLowerCase().contains(queryLower) && !seenPeopleIds.contains(cr.id)) {
-              seenPeopleIds.add(cr.id);
-              peopleFound.add(cr);
-            }
-          }
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _movieResults = moviesFound;
-          _peopleResults = peopleFound;
-          _isSearching = false;
-        });
-      }
+    // DB-backed search: movies + persons in parallel.
+    Future.wait([
+      MovieService.searchMovies(query),
+      MovieService.searchPersons(query),
+    ]).then((results) {
+      if (!mounted) return;
+      setState(() {
+        _movieResults = results[0] as List<Movie>;
+        _peopleResults = results[1] as List<PersonResult>;
+        _isSearching = false;
+      });
+    }).catchError((_) {
+      if (!mounted) return;
+      setState(() {
+        _movieResults = [];
+        _peopleResults = [];
+        _isSearching = false;
+      });
     });
   }
 
@@ -290,10 +271,16 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
 
   Widget _buildMovieResultItem(Movie movie, AppLocalizations l10n, {bool saveHistory = false}) {
-    final director = movie.crew?.firstWhere(
-      (c) => c.job == 'Director',
-      orElse: () => Crew(id: 0, name: 'Unknown', job: '', department: ''),
-    ).name ?? 'Unknown';
+    // Search/suggestion items are lightweight cards (no crew/cast); only show
+    // director/starring when the data is actually present (e.g. full details).
+    final director = (movie.crew == null || movie.crew!.isEmpty)
+        ? null
+        : movie.crew!
+            .firstWhere(
+              (c) => c.job == 'Director',
+              orElse: () => movie.crew!.first,
+            )
+            .name;
 
     final starring = movie.cast?.take(3).map((c) => c.name).join(', ') ?? '';
 
@@ -333,11 +320,14 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                     text: TextSpan(
                       style: const TextStyle(color: Colors.white38, fontSize: 13),
                       children: [
-                        TextSpan(text: '${movie.releaseDate?.split('-').first ?? ''} • ${l10n.directedByLower} '),
-                        TextSpan(
-                          text: director,
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white70),
-                        ),
+                        TextSpan(text: movie.releaseDate?.split('-').first ?? ''),
+                        if (director != null) ...[
+                          TextSpan(text: ' • ${l10n.directedByLower} '),
+                          TextSpan(
+                            text: director,
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white70),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -376,8 +366,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       itemCount: _peopleResults.length,
       itemBuilder: (context, index) {
         final person = _peopleResults[index];
-        final isCast = person is Cast;
-        final profileUrl = isCast ? person.profileUrl : (person as Crew).profileUrl;
+        final profileUrl = person.profileUrl;
+        final role = person.knownForDepartment ?? '';
 
         return ListTile(
           onTap: () => Navigator.push(
@@ -386,7 +376,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               builder: (_) => PersonScreen(
                 personId: person.id,
                 name: person.name,
-                role: isCast ? person.character : person.job,
+                role: role,
                 profileUrl: profileUrl.isNotEmpty ? profileUrl : null,
               ),
             ),
@@ -398,10 +388,9 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             child: profileUrl.isEmpty ? const Icon(Icons.person, color: Colors.white10) : null,
           ),
           title: Text(person.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          subtitle: Text(
-            isCast ? person.character : person.job,
-            style: const TextStyle(color: Colors.white38),
-          ),
+          subtitle: role.isNotEmpty
+              ? Text(role, style: const TextStyle(color: Colors.white38))
+              : null,
           trailing: const Icon(Icons.chevron_right, color: Colors.white10),
         );
       },

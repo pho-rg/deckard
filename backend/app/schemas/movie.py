@@ -137,3 +137,22 @@ class MovieIdsIn(BaseModel):
     """Onboarding grid: a fixed list of tmdb_ids resolved to movie cards."""
 
     tmdb_ids: list[int] = Field(min_length=1, max_length=100)
+
+
+# ---------- people (DB-sourced person search) ----------
+
+
+class PersonCard(BaseModel):
+    """Compact person shape for DB-sourced search results."""
+
+    tmdb_id: int
+    name: str
+    known_for_department: str | None = None
+    profile_url: str | None = None
+
+
+class PagedPersons(BaseModel):
+    page: int
+    total_pages: int
+    total_results: int
+    results: list[PersonCard]

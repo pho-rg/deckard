@@ -8,6 +8,7 @@
   "profile": "PROFIL",
   "discover": "À DÉCOUVRIR",
   "trending": "TENDANCES",
+  "nowPlaying": "EN SALLE",
   "forYou": "POUR VOUS",
   "moviesCount": "{count} FILMS",
   "@moviesCount": {

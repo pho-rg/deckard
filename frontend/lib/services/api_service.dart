@@ -20,6 +20,12 @@ class ApiService {
   // Renseigné après login : ApiService.token = response['access_token']
   static String? token;
 
+  /// Appelé quand l'API renvoie 401 (token absent/expiré/invalide).
+  /// Branché dans main() pour purger la session et renvoyer vers le login.
+  /// NB : seul 401 (non authentifié) le déclenche — 403 (accès interdit, ex.
+  /// profil d'un non-ami) est une autorisation refusée, pas une session morte.
+  static void Function()? onUnauthorized;
+
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
@@ -70,7 +76,12 @@ class ApiService {
     }
 
     final message = _extractDetail(response);
-    if (status == 401 || status == 403) {
+    if (status == 401) {
+      // Session invalide → purge + redirection (branchée dans main()).
+      onUnauthorized?.call();
+      throw ApiException(message, statusCode: status, isAuth: true);
+    }
+    if (status == 403) {
       throw ApiException(message, statusCode: status, isAuth: true);
     }
     throw ApiException(message, statusCode: status);

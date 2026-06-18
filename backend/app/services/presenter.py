@@ -14,6 +14,7 @@ from app.schemas.movie import (
     MovieCard,
     MovieDetailOut,
     MovieSummary,
+    PersonCard,
     PersonOut,
 )
 from app.schemas.movie import _image_url
@@ -32,6 +33,16 @@ def _person_out(person, lang_iso: str) -> PersonOut:
     return PersonOut(
         tmdb_id=person.tmdb_id,
         name=person.name or "",
+        profile_url=_image_url(person.profile_path, "w185"),
+    )
+
+
+def person_card(person) -> PersonCard:
+    # Person names are language-agnostic in our catalogue (stored on Person).
+    return PersonCard(
+        tmdb_id=person.tmdb_id,
+        name=person.name or "",
+        known_for_department=person.known_for_department,
         profile_url=_image_url(person.profile_path, "w185"),
     )
 

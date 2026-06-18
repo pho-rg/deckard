@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.integrations.tmdb import TMDBClient, get_tmdb_client
 from app.repositories.movie_repository import MovieRepository
-from app.schemas.movie import MovieCard, MovieDetailOut, PagedMovies
+from app.schemas.movie import (
+    MovieCard,
+    MovieDetailOut,
+    PagedMovies,
+    PagedPersons,
+    PersonCard,
+)
 from app.services import presenter, tmdb_cache
 from app.services.localization import to_iso2
 
@@ -73,6 +79,33 @@ class MovieService:
             total_results=total,
             results=[presenter.movie_summary(m, iso) for m in movies],
         )
+
+    # ------------ people (DB-sourced) ------------
+
+    def search_persons(self, query: str, *, page: int = 1) -> PagedPersons:
+        persons, total = self.repo.search_persons(
+            query, page=page, page_size=_SEARCH_PAGE_SIZE
+        )
+        total_pages = max(1, math.ceil(total / _SEARCH_PAGE_SIZE)) if total else 1
+        return PagedPersons(
+            page=page,
+            total_pages=total_pages,
+            total_results=total,
+            results=[presenter.person_card(p) for p in persons],
+        )
+
+    def get_person(self, person_id: int) -> PersonCard | None:
+        person = self.repo.get_person(person_id)
+        if person is None:
+            return None
+        return presenter.person_card(person)
+
+    def person_filmography(
+        self, person_id: int, *, language: str = "fr-FR"
+    ) -> list[MovieCard]:
+        iso = to_iso2(language)
+        movies = self.repo.filmography(person_id)
+        return [presenter.movie_card(m, iso) for m in movies]
 
     # ------------ TMDB passthrough (memory-cached) ------------
 
