@@ -221,6 +221,9 @@ def load(shards_dir: str) -> None:
                 except json.JSONDecodeError:
                     continue
 
+                if data.get("adult") is True:
+                    continue
+
                 movies.append(parse_movie(data))
                 movie_contents.extend(parse_movie_contents(data))
                 videos.extend(parse_videos(data))

@@ -63,6 +63,10 @@ def make_session():
     adapter = HTTPAdapter(max_retries=retry, pool_connections=10, pool_maxsize=10)
     s.mount("https://", adapter)
     s.mount("http://", adapter)
+    s.headers.update({
+        "accept": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    })
     return s
 
 
@@ -76,7 +80,6 @@ def get_movies(id_array, test=False):
             response = session.get(
                 f"https://api.themoviedb.org/3/movie/{i}",
                 params={
-                    "api_key": api_key,
                     "append_to_response": "credits,keywords,videos,translations",
                 },
                 timeout=(10, 30),
