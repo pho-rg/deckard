@@ -1,3 +1,4 @@
+import '../services/auth_service.dart';
 import 'profile_models.dart';
 
 class Friend {
@@ -29,38 +30,71 @@ class FriendRequest {
       );
 }
 
+/// Statut d'une session match. Mappe le backend :
+/// not_started → waiting, in_progress → voting, finished → finished.
 enum MatchStatus { waiting, voting, finished }
 
+MatchStatus _statusFromString(String? s) {
+  switch (s) {
+    case 'in_progress':
+      return MatchStatus.voting;
+    case 'finished':
+      return MatchStatus.finished;
+    case 'not_started':
+    default:
+      return MatchStatus.waiting;
+  }
+}
+
+/// Session match, mappe le backend `MatchSessionOut`.
 class MatchSession {
   final String id;
   final String code;
   final MatchStatus status;
-  final String hostId;
+  final Friend host;
   final List<Friend> participants;
-  final List<ProfileMovieCard> movies;
+  final int participantCount;
+  final int choicesReceived;
+  final List<ProfileMovieCard> movies; // liste de vote
+  final List<ProfileMovieCard> result; // films unanimes (si terminé)
 
   const MatchSession({
     required this.id,
     required this.code,
     required this.status,
-    required this.hostId,
+    required this.host,
     required this.participants,
+    required this.participantCount,
+    required this.choicesReceived,
     this.movies = const [],
+    this.result = const [],
   });
 
-  bool get isHost => hostId == 'mock-user-id';
+  String get hostId => host.id;
 
-  MatchSession copyWith({
-    MatchStatus? status,
-    List<Friend>? participants,
-    List<ProfileMovieCard>? movies,
-  }) =>
-      MatchSession(
-        id: id,
-        code: code,
-        status: status ?? this.status,
-        hostId: hostId,
-        participants: participants ?? this.participants,
-        movies: movies ?? this.movies,
-      );
+  /// Vrai si l'utilisateur connecté est l'hôte de la session.
+  bool get isHost =>
+      AuthService.currentUserId != null &&
+      host.id == AuthService.currentUserId;
+
+  factory MatchSession.fromJson(Map<String, dynamic> json) {
+    List<ProfileMovieCard> cards(String key) =>
+        ((json[key] as List?) ?? const [])
+            .map((m) => ProfileMovieCard.fromJson(m as Map<String, dynamic>))
+            .toList();
+
+    return MatchSession(
+      id: json['id'] as String,
+      code: json['code'] as String,
+      status: _statusFromString(json['status'] as String?),
+      host: Friend.fromJson(json['host'] as Map<String, dynamic>),
+      participants: ((json['participants'] as List?) ?? const [])
+          .map((p) => Friend.fromJson(p as Map<String, dynamic>))
+          .toList(),
+      participantCount: (json['participant_count'] as num?)?.toInt() ?? 0,
+      choicesReceived: (json['choices_received'] as num?)?.toInt() ?? 0,
+      movies: cards('movies'),
+      result: cards('result'),
+    );
+  }
 }

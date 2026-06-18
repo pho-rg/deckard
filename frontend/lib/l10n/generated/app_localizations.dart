@@ -668,6 +668,18 @@ abstract class AppLocalizations {
   /// **'GO'**
   String get goButton;
 
+  /// No description provided for @waitingForHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the host to start…'**
+  String get waitingForHost;
+
+  /// No description provided for @waitingForOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the others to finish…'**
+  String get waitingForOthers;
+
   /// No description provided for @codeCopied.
   ///
   /// In en, this message translates to:

@@ -298,6 +298,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goButton => 'GO';
 
   @override
+  String get waitingForHost => 'Waiting for the host to start…';
+
+  @override
+  String get waitingForOthers => 'Waiting for the others to finish…';
+
+  @override
   String get codeCopied => 'Code copied!';
 
   @override

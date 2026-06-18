@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,11 +25,24 @@ class FriendsScreen extends StatefulWidget {
 class _FriendsScreenState extends State<FriendsScreen> {
   final _service = FriendService();
   late Future<_FriendsData> _dataFuture;
+  Timer? _cleanupTimer;
 
   @override
   void initState() {
     super.initState();
     _dataFuture = _load();
+    // Tâche récurrente : purge des sessions match inactives (best-effort).
+    _service.cleanupMatches().catchError((_) {});
+    _cleanupTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => _service.cleanupMatches().catchError((_) {}),
+    );
+  }
+
+  @override
+  void dispose() {
+    _cleanupTimer?.cancel();
+    super.dispose();
   }
 
   Future<_FriendsData> _load() async {
@@ -317,7 +332,7 @@ class _JoinMatchDialogState extends State<_JoinMatchDialog> {
                 fontWeight: FontWeight.bold,
                 letterSpacing: 4),
             decoration: InputDecoration(
-              hintText: 'XXXXX',
+              hintText: 'XXXXXX',
               hintStyle:
                   const TextStyle(color: Colors.white24, letterSpacing: 4),
               filled: true,
@@ -329,7 +344,7 @@ class _JoinMatchDialogState extends State<_JoinMatchDialog> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: Colors.white12)),
             ),
-            maxLength: 5,
+            maxLength: 6,
           ),
           const SizedBox(height: 4),
           OutlinedButton.icon(
@@ -364,10 +379,18 @@ class _JoinMatchDialogState extends State<_JoinMatchDialog> {
           onPressed: _loading
               ? null
               : () async {
-                  if (_ctrl.text.trim().length < 5) return;
+                  if (_ctrl.text.trim().length < 6) return;
                   setState(() => _loading = true);
-                  await widget.onJoin(_ctrl.text.trim());
-                  if (mounted) Navigator.pop(context);
+                  try {
+                    await widget.onJoin(_ctrl.text.trim());
+                    if (mounted) Navigator.pop(context);
+                  } catch (e) {
+                    if (mounted) {
+                      setState(() => _loading = false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('$e')));
+                    }
+                  }
                 },
           style: FilledButton.styleFrom(
               backgroundColor: AppTheme.primaryPurple),

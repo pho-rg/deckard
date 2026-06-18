@@ -299,6 +299,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get goButton => 'C\'EST PARTI';
 
   @override
+  String get waitingForHost => 'En attente du lancement par l\'hôte…';
+
+  @override
+  String get waitingForOthers => 'En attente des autres participants…';
+
+  @override
   String get codeCopied => 'Code copié !';
 
   @override

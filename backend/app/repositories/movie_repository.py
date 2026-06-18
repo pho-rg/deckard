@@ -181,6 +181,18 @@ class MovieRepository:
 
     # ------------ similar (v1: random) ------------
 
+    def random_movies(self, *, limit: int = 10) -> list[Movie]:
+        """Random movies from the catalogue (used for the group match list,
+        v1). To be replaced by an AI 'common taste' model later."""
+        return list(
+            self.db.scalars(
+                select(Movie)
+                .order_by(func.random())
+                .limit(limit)
+                .options(*_SUMMARY_OPTIONS)
+            ).unique()
+        )
+
     def random_similar(self, tmdb_id: int, *, limit: int = 10) -> list[Movie]:
         """V1 of "similar movies": random movies (excluding the current one).
         To be replaced by an AI model later."""

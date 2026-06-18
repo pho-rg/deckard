@@ -9,6 +9,10 @@ class AuthService {
 
   static final _api = ApiService();
 
+  /// Id de l'utilisateur connecté (rempli au login / restauration de session).
+  /// Sert notamment à savoir si l'on est l'hôte d'un match.
+  static String? currentUserId;
+
   /// Connexion email + mot de passe.
   /// POST /auth/login → { access_token, refresh_token, token_type }
   /// Retourne `true` si l'utilisateur doit passer par l'onboarding
@@ -43,6 +47,7 @@ class AuthService {
   /// aucun favori. GET /users/me → { ..., needs_onboarding }.
   static Future<bool> fetchNeedsOnboarding() async {
     final me = await _api.get('/users/me');
+    if (me is Map) currentUserId = me['id'] as String?;
     return (me is Map && me['needs_onboarding'] == true);
   }
 
@@ -71,6 +76,7 @@ class AuthService {
     await _storage.delete(key: _accessKey);
     await _storage.delete(key: _refreshKey);
     ApiService.token = null;
+    currentUserId = null;
   }
 
   /// Appelé au démarrage. Restaure le token ET le valide auprès du backend.
@@ -82,7 +88,8 @@ class AuthService {
     if (token == null) return false;
     ApiService.token = token;
     try {
-      await _api.get('/users/me'); // valide réellement le token
+      final me = await _api.get('/users/me'); // valide réellement le token
+      if (me is Map) currentUserId = me['id'] as String?;
       return true;
     } on ApiException catch (e) {
       if (e.statusCode == 401) {

@@ -4,6 +4,12 @@ from app.models.featured_movie import FeaturedMovie
 from app.models.friendship import Friendship, FriendshipStatus
 from app.models.genre import Genre
 from app.models.genre_content import GenreContent
+from app.models.match import (
+    MatchMovie,
+    MatchParticipant,
+    MatchSession,
+    MatchStatus,
+)
 from app.models.movie import Movie, MovieStatus
 from app.models.movie_cast import MovieCast
 from app.models.movie_content import MovieContent
@@ -26,6 +32,10 @@ __all__ = [
     "FriendshipStatus",
     "Genre",
     "GenreContent",
+    "MatchMovie",
+    "MatchParticipant",
+    "MatchSession",
+    "MatchStatus",
     "Movie",
     "MovieCast",
     "MovieContent",

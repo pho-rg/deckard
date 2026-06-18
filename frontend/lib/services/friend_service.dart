@@ -1,21 +1,6 @@
-import 'dart:math';
-
 import '../models/friend_models.dart';
-import '../models/movie.dart';
 import '../models/profile_models.dart';
 import 'api_service.dart';
-import 'movie_service.dart';
-
-// ── Mock data (encore utilisé par la partie "match", hors périmètre) ──────────
-
-final _mockMe = Friend(id: 'mock-user-id', username: 'hugo');
-
-final _mockFriends = <Friend>[
-  Friend(id: 'f1', username: 'jane_riefel'),
-  Friend(id: 'f2', username: 'yann_brumir'),
-  Friend(id: 'f3', username: 'sofia_delacroix'),
-  Friend(id: 'f4', username: 'alex_martin'),
-];
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
@@ -68,68 +53,50 @@ class FriendService {
         .toList();
   }
 
-  // ── Match session ──────────────────────────────────────────────────────────
+  // ── Match session (DB-backed, polling HTTP) ──────────────────────────────────
 
+  /// POST /matches -> MatchSessionOut (crée la session, l'appelant est l'hôte).
   Future<MatchSession> createMatch() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    return MatchSession(
-      id: 'session-${DateTime.now().millisecondsSinceEpoch}',
-      code: _generateCode(),
-      status: MatchStatus.waiting,
-      hostId: _mockMe.id,
-      participants: [_mockMe],
-    );
+    final data = await _api.post('/matches', {});
+    return MatchSession.fromJson(data as Map<String, dynamic>);
   }
 
+  /// POST /matches/join { code } -> MatchSessionOut
   Future<MatchSession> joinMatch(String code) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return MatchSession(
-      id: 'session-joined',
-      code: code.toUpperCase(),
-      status: MatchStatus.waiting,
-      hostId: 'f1', // someone else is host
-      participants: [_mockFriends[0], _mockMe],
-    );
+    final data =
+        await _api.post('/matches/join', {'code': code.trim().toUpperCase()});
+    return MatchSession.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Called when host presses GO. Returns the movies to vote on.
-  Future<List<ProfileMovieCard>> startMatch(String sessionId) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    final movies = await MovieService.getMockMovies();
-    final rng = Random(sessionId.hashCode);
-    final shuffled = List.of(movies)..shuffle(rng);
-    return shuffled.take(10).map(_toCard).toList();
+  /// GET /matches/{id} -> MatchSessionOut (pollé par le lobby / la phase de vote).
+  Future<MatchSession> getMatch(String sessionId) async {
+    final data = await _api.get('/matches/$sessionId');
+    return MatchSession.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Simulates submitting choices and getting unanimous results back.
-  Future<List<ProfileMovieCard>> submitChoices(
-    List<ProfileMovieCard> movies,
-    Map<int, bool> choices,
-  ) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    final selected = movies.where((m) => choices[m.tmdbId] == true).toList();
-    if (selected.isEmpty) return [];
-    // Simulate: ~40% of selected make unanimity
-    final rng = Random();
-    final unanimous =
-        selected.where((_) => rng.nextDouble() < 0.45).take(4).toList();
-    return unanimous;
+  /// POST /matches/{id}/start -> MatchSessionOut (hôte : génère la liste de vote).
+  Future<MatchSession> startMatch(String sessionId) async {
+    final data = await _api.post('/matches/$sessionId/start', {});
+    return MatchSession.fromJson(data as Map<String, dynamic>);
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  /// POST /matches/{id}/relaunch -> MatchSessionOut (hôte : régénère une liste).
+  Future<MatchSession> relaunchMatch(String sessionId) async {
+    final data = await _api.post('/matches/$sessionId/relaunch', {});
+    return MatchSession.fromJson(data as Map<String, dynamic>);
+  }
 
-  ProfileMovieCard _toCard(Movie m) => ProfileMovieCard(
-        tmdbId: m.id,
-        title: m.title,
-        posterUrl: m.posterUrl,
-        backdropUrl: m.backdropUrl,
-        voteAverage: m.voteAverage,
-        releaseDate: m.releaseDate,
-      );
+  /// POST /matches/{id}/choices { rejected_ids } -> MatchSessionOut
+  /// `rejectedIds` = les tmdb_id sur lesquels l'utilisateur a voté "non".
+  Future<MatchSession> submitChoices(
+      String sessionId, List<int> rejectedIds) async {
+    final data = await _api.post(
+        '/matches/$sessionId/choices', {'rejected_ids': rejectedIds});
+    return MatchSession.fromJson(data as Map<String, dynamic>);
+  }
 
-  String _generateCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final rng = Random();
-    return List.generate(5, (_) => chars[rng.nextInt(chars.length)]).join();
+  /// POST /matches/cleanup — purge des sessions inactives (> 1h).
+  Future<void> cleanupMatches() async {
+    await _api.post('/matches/cleanup', {});
   }
 }

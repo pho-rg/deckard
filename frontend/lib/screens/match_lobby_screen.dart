@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../models/friend_models.dart';
+import '../services/auth_service.dart';
 import '../services/friend_service.dart';
 import '../theme/app_theme.dart';
 import 'movie_swipe_screen.dart';
@@ -24,63 +25,60 @@ class MatchLobbyScreen extends StatefulWidget {
 class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
   late MatchSession _session;
   bool _starting = false;
-  Timer? _simulationTimer;
-
-  // Mock friends that will "join" one by one after a delay
-  final _friendsToJoin = [
-    Friend(id: 'f1', username: 'jane_riefel'),
-    Friend(id: 'f2', username: 'yann_brumir'),
-  ];
-  int _joinedCount = 0;
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     _session = widget.session;
-    // Only simulate friends joining if we are the host
-    if (_session.isHost) {
-      _simulateFriendsJoining();
-    }
+    // Polling HTTP : on rafraîchit la salle d'attente et on détecte le départ
+    // du vote (l'hôte a lancé) pour basculer tout le monde sur l'écran de swipe.
+    _pollTimer = Timer.periodic(
+        const Duration(seconds: 2), (_) => _poll());
   }
 
   @override
   void dispose() {
-    _simulationTimer?.cancel();
+    _pollTimer?.cancel();
     super.dispose();
   }
 
-  void _simulateFriendsJoining() {
-    _simulationTimer = Timer.periodic(const Duration(seconds: 3), (t) {
-      if (_joinedCount >= _friendsToJoin.length) {
-        t.cancel();
+  Future<void> _poll() async {
+    try {
+      final s = await widget.service.getMatch(_session.id);
+      if (!mounted) return;
+      if (s.status == MatchStatus.voting) {
+        _pollTimer?.cancel();
+        _goToSwipe(s);
         return;
       }
-      final newFriend = _friendsToJoin[_joinedCount];
-      _joinedCount++;
-      if (mounted) {
-        setState(() {
-          _session = _session.copyWith(
-            participants: [..._session.participants, newFriend],
-          );
-        });
-      }
-    });
+      setState(() => _session = s);
+    } catch (_) {
+      // Erreur transitoire de polling : on réessaiera au prochain tick.
+    }
+  }
+
+  void _goToSwipe(MatchSession session) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            MovieSwipeScreen(session: session, service: widget.service),
+      ),
+    );
   }
 
   Future<void> _go(AppLocalizations l10n) async {
     setState(() => _starting = true);
-    final movies = await widget.service.startMatch(_session.id);
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MovieSwipeScreen(
-            session: _session,
-            movies: movies,
-            service: widget.service,
-          ),
-        ),
-      );
+    try {
+      final s = await widget.service.startMatch(_session.id);
+      _pollTimer?.cancel();
+      if (mounted) _goToSwipe(s);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _starting = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
     }
   }
 
@@ -227,7 +225,8 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
                   itemCount: _session.participants.length,
                   itemBuilder: (_, i) {
                     final p = _session.participants[i];
-                    final isMe = p.id == 'mock-user-id';
+                    final isMe = p.id == AuthService.currentUserId;
+                    final isHost = p.id == _session.host.id;
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Container(
@@ -263,7 +262,7 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
                                   color: AppTheme.textMain,
                                   fontWeight: FontWeight.w500),
                             ),
-                            if (i == 0 && _session.isHost) ...[
+                            if (isHost) ...[
                               const Spacer(),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -291,34 +290,55 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
                 ),
               ),
 
-              // ── GO button ─────────────────────────────────────────────────
+              // ── GO button (hôte) / attente (participants) ─────────────────
               Padding(
                 padding: const EdgeInsets.only(bottom: 16, top: 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed:
-                        _starting ? null : () => _go(l10n),
-                    icon: _starting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.send_rounded, size: 18),
-                    label: Text(
-                      l10n.goButton,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.primaryPurple,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
+                child: _session.isHost
+                    ? SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _starting ? null : () => _go(l10n),
+                          icon: _starting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.send_rounded, size: 18),
+                          label: Text(
+                            l10n.goButton,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.primaryPurple,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppTheme.primaryPurple),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              l10n.waitingForHost,
+                              style: const TextStyle(
+                                  color: AppTheme.textDim, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
               ),
             ],
           ),

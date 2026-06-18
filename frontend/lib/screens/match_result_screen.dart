@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -6,24 +8,84 @@ import '../models/friend_models.dart';
 import '../models/profile_models.dart';
 import '../services/friend_service.dart';
 import '../theme/app_theme.dart';
-import 'match_lobby_screen.dart';
+import 'movie_swipe_screen.dart';
 
-class MatchResultScreen extends StatelessWidget {
+class MatchResultScreen extends StatefulWidget {
   final MatchSession session;
-  final List<ProfileMovieCard> unanimousMovies;
   final FriendService service;
 
   const MatchResultScreen({
     super.key,
     required this.session,
-    required this.unanimousMovies,
     required this.service,
   });
 
   @override
+  State<MatchResultScreen> createState() => _MatchResultScreenState();
+}
+
+class _MatchResultScreenState extends State<MatchResultScreen> {
+  Timer? _pollTimer;
+  bool _relaunching = false;
+
+  bool get _hasMatch => widget.session.result.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pas de match + on n'est pas l'hôte → on attend que l'hôte relance.
+    if (!_hasMatch && !widget.session.isHost) {
+      _pollTimer = Timer.periodic(
+          const Duration(seconds: 2), (_) => _pollForRelaunch());
+    }
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _pollForRelaunch() async {
+    try {
+      final s = await widget.service.getMatch(widget.session.id);
+      if (!mounted) return;
+      if (s.status == MatchStatus.voting) {
+        _pollTimer?.cancel();
+        _goToSwipe(s);
+      }
+    } catch (_) {
+      // tick suivant
+    }
+  }
+
+  Future<void> _relaunch() async {
+    setState(() => _relaunching = true);
+    try {
+      final s = await widget.service.relaunchMatch(widget.session.id);
+      if (mounted) _goToSwipe(s);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _relaunching = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+  }
+
+  void _goToSwipe(MatchSession session) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            MovieSwipeScreen(session: session, service: widget.service),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final hasMatch = unanimousMovies.isNotEmpty;
 
     return Scaffold(
       body: SafeArea(
@@ -51,19 +113,20 @@ class MatchResultScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Spacer to balance the close button
                   const SizedBox(width: 48),
                 ],
               ),
             ),
 
             Expanded(
-              child: hasMatch
-                  ? _MatchFoundView(movies: unanimousMovies, l10n: l10n)
+              child: _hasMatch
+                  ? _MatchFoundView(
+                      movies: widget.session.result, l10n: l10n)
                   : _NoMatchView(
                       l10n: l10n,
-                      session: session,
-                      service: service,
+                      isHost: widget.session.isHost,
+                      relaunching: _relaunching,
+                      onRelaunch: _relaunch,
                     ),
             ),
           ],
@@ -160,7 +223,7 @@ class _MatchFoundView extends StatelessWidget {
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
                               colors: [
-                                Colors.black.withOpacity(0.85),
+                                Colors.black.withValues(alpha: 0.85),
                                 Colors.transparent,
                               ],
                             ),
@@ -210,13 +273,15 @@ class _MatchFoundView extends StatelessWidget {
 
 class _NoMatchView extends StatelessWidget {
   final AppLocalizations l10n;
-  final MatchSession session;
-  final FriendService service;
+  final bool isHost;
+  final bool relaunching;
+  final VoidCallback onRelaunch;
 
   const _NoMatchView({
     required this.l10n,
-    required this.session,
-    required this.service,
+    required this.isHost,
+    required this.relaunching,
+    required this.onRelaunch,
   });
 
   @override
@@ -245,11 +310,17 @@ class _NoMatchView extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 14, color: AppTheme.textDim, height: 1.5),
             ),
-            if (session.isHost) ...[
-              const SizedBox(height: 36),
+            const SizedBox(height: 36),
+            if (isHost)
               FilledButton.icon(
-                onPressed: () => _restartMatch(context),
-                icon: const Icon(Icons.refresh_rounded, size: 18),
+                onPressed: relaunching ? null : onRelaunch,
+                icon: relaunching
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(l10n.restartMatch),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppTheme.primaryPurple,
@@ -258,24 +329,26 @@ class _NoMatchView extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppTheme.primaryPurple),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(l10n.waitingForHost,
+                      style: const TextStyle(
+                          color: AppTheme.textDim, fontSize: 13)),
+                ],
               ),
-            ],
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _restartMatch(BuildContext context) async {
-    final newSession = await service.createMatch();
-    if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) =>
-              MatchLobbyScreen(session: newSession, service: service),
-        ),
-      );
-    }
   }
 }
