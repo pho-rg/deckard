@@ -10,6 +10,7 @@ from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.movie import Movie
+    from app.models.user import User
 
 
 class Rating(Base):
@@ -43,3 +44,4 @@ class Rating(Base):
     )
 
     movie: Mapped["Movie"] = relationship(lazy="joined")
+    user: Mapped["User"] = relationship(lazy="joined")

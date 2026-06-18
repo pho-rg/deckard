@@ -16,15 +16,10 @@ class ProfileService {
   }
 
   /// PUT /users/me { username?, email?, language? } -> UserOut
-  ///
-  /// NB: la réinitialisation du mot de passe est mise de côté pour l'instant —
-  /// les paramètres password sont acceptés mais non transmis au backend.
   Future<ProfileUser> updateMe({
     String? username,
     String? email,
     String? language,
-    String? currentPassword, // ignoré pour l'instant
-    String? newPassword, // ignoré pour l'instant
   }) async {
     final body = <String, dynamic>{
       if (username != null) 'username': username,
@@ -33,6 +28,16 @@ class ProfileService {
     };
     final data = await _api.put('/users/me', body);
     return ProfileUser.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// Change le mot de passe (vérifie l'actuel côté serveur).
+  /// PUT /users/me/password { current_password, new_password }
+  Future<void> changePassword(
+      String currentPassword, String newPassword) async {
+    await _api.put('/users/me/password', {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
   }
 
   /// GET /users/me/favorites -> list<MovieCard>

@@ -6,7 +6,13 @@ from app.deps import CurrentUser, DbSession
 from app.repositories.user_repository import UserRepository
 from app.schemas.friend import UserPublicOut
 from app.schemas.movie import MovieCard
-from app.schemas.user import UserOut, UserProfileOut, UserUpdate
+from app.schemas.user import (
+    PasswordChange,
+    UserOut,
+    UserProfileOut,
+    UserUpdate,
+)
+from app.security import hash_password, verify_password
 from app.schemas.user_movie import FavoriteBatchIn, RatingWithMovieOut
 from app.services.friendship_service import FriendshipService
 from app.services.user_movie_service import UserMovieService
@@ -52,6 +58,18 @@ def update_me(payload: UserUpdate, db: DbSession, current_user: CurrentUser):
     db.commit()
     db.refresh(current_user)
     return _user_out(db, current_user)
+
+
+@router.put("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: PasswordChange, db: DbSession, current_user: CurrentUser
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Current password is incorrect"
+        )
+    current_user.password_hash = hash_password(payload.new_password)
+    db.commit()
 
 
 @router.post("/me/favorites/batch", status_code=status.HTTP_204_NO_CONTENT)

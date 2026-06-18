@@ -33,16 +33,21 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       MovieService.getTrending(),
       MovieService.getNowPlaying(),
       MovieService.getFeatured(),
+      MovieService.getRecommendations(),
     ]);
 
     final trending = results[0] as List<Movie>;
     final nowPlaying = results[1] as List<Movie>;
     Movie? featured = results[2] as Movie?;
+    final forYou = results[3] as List<Movie>;
 
     // No configured featured movie → fall back to the first trending one.
     featured ??= trending.isNotEmpty ? trending.first : null;
 
-    if (featured == null && trending.isEmpty && nowPlaying.isEmpty) {
+    if (featured == null &&
+        trending.isEmpty &&
+        nowPlaying.isEmpty &&
+        forYou.isEmpty) {
       return {};
     }
 
@@ -50,6 +55,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       'featured': featured,
       'trending': trending.take(15).toList(),
       'nowPlaying': nowPlaying.take(15).toList(),
+      'forYou': forYou,
     };
   }
 
@@ -83,6 +89,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
           final featured = snapshot.data!['featured'] as Movie?;
           final trending = snapshot.data!['trending'] as List<Movie>;
           final nowPlaying = snapshot.data!['nowPlaying'] as List<Movie>;
+          final forYou = snapshot.data!['forYou'] as List<Movie>;
 
           return SingleChildScrollView(
             child: Column(
@@ -113,6 +120,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
                 // Section: Now Playing
                 _buildHorizontalSection(l10n.nowPlaying, nowPlaying),
+
+                const SizedBox(height: 30),
+
+                // Section: For You (recommandations, en grille)
+                if (forYou.isNotEmpty) _buildGridSection(l10n.forYou, forYou),
 
                 const SizedBox(height: 20),
               ],
@@ -267,6 +279,53 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               );
             },
           ),
+        ),
+      ],
+    );
+  }
+
+  /// Section en grille (comme la page Watchlist) — posters cliquables, 3 colonnes.
+  Widget _buildGridSection(String title, List<Movie> movies) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: Colors.white70,
+            ),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 2 / 3,
+            crossAxisSpacing: 8.0,
+            mainAxisSpacing: 8.0,
+          ),
+          itemCount: movies.length,
+          itemBuilder: (context, index) {
+            return MovieCard(
+              movie: movies[index],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        MovieDetailScreen(movie: movies[index]),
+                  ),
+                );
+              },
+            );
+          },
         ),
       ],
     );

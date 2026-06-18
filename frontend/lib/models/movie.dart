@@ -290,6 +290,69 @@ class MovieUserState {
       );
 }
 
+/// A public review on a movie. Maps the backend `MovieReviewOut`:
+/// { user: { id, username }, stars, review, created_at }.
+class MovieReview {
+  final String userId;
+  final String username;
+  final double stars; // 0.0–5.0 in 0.5 steps
+  final String review;
+  final DateTime createdAt;
+
+  MovieReview({
+    required this.userId,
+    required this.username,
+    required this.stars,
+    required this.review,
+    required this.createdAt,
+  });
+
+  factory MovieReview.fromJson(Map<String, dynamic> json) {
+    final user = json['user'] as Map<String, dynamic>;
+    return MovieReview(
+      userId: user['id'] as String,
+      username: (user['username'] ?? '') as String,
+      stars: (json['stars'] as num?)?.toDouble() ?? 0.0,
+      review: (json['review'] ?? '') as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+}
+
+/// Aggregate ratings + public reviews for a movie. Maps `MovieRatingsOut`:
+/// { average, count, distribution[10], reviews[] }.
+class MovieRatings {
+  final double? average; // 0.0–5.0 stars, or null
+  final int count;
+  final List<int> distribution; // 10 half-star buckets 0.5..5.0
+  final List<MovieReview> reviews;
+
+  MovieRatings({
+    required this.average,
+    required this.count,
+    required this.distribution,
+    required this.reviews,
+  });
+
+  factory MovieRatings.fromJson(Map<String, dynamic> json) => MovieRatings(
+        average: (json['average'] as num?)?.toDouble(),
+        count: (json['count'] as num?)?.toInt() ?? 0,
+        distribution: ((json['distribution'] as List?) ?? const [])
+            .map((e) => (e as num).toInt())
+            .toList(),
+        reviews: ((json['reviews'] as List?) ?? const [])
+            .map((r) => MovieReview.fromJson(r as Map<String, dynamic>))
+            .toList(),
+      );
+
+  static MovieRatings empty() => MovieRatings(
+        average: null,
+        count: 0,
+        distribution: List.filled(10, 0),
+        reviews: const [],
+      );
+}
+
 /// A person (cast or crew) returned by the DB-backed person search.
 /// Maps the backend `PersonCard`:
 /// { tmdb_id, name, known_for_department, profile_url }.

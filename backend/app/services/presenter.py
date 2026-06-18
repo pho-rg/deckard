@@ -18,7 +18,12 @@ from app.schemas.movie import (
     PersonOut,
 )
 from app.schemas.movie import _image_url
-from app.schemas.user_movie import RatingWithMovieOut
+from app.schemas.friend import UserPublicOut
+from app.schemas.user_movie import (
+    MovieRatingsOut,
+    MovieReviewOut,
+    RatingWithMovieOut,
+)
 from app.services.localization import pick_content
 
 
@@ -132,4 +137,27 @@ def rating_with_movie(rating: Rating, lang_iso: str) -> RatingWithMovieOut:
         review=rating.review,
         created_at=rating.created_at,
         updated_at=rating.updated_at,
+    )
+
+
+def movie_review(rating: Rating) -> MovieReviewOut:
+    return MovieReviewOut(
+        user=UserPublicOut(id=rating.user.id, username=rating.user.username),
+        stars=rating.rating / 2,
+        review=rating.review or "",
+        created_at=rating.created_at,
+    )
+
+
+def movie_ratings(
+    average: float | None,
+    count: int,
+    distribution: list[int],
+    reviews: list[Rating],
+) -> MovieRatingsOut:
+    return MovieRatingsOut(
+        average=round(average, 1) if average is not None else None,
+        count=count,
+        distribution=distribution,
+        reviews=[movie_review(r) for r in reviews],
     )

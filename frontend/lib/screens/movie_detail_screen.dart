@@ -26,9 +26,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   double _userRating = 0.0;
   bool _isSynopsisExpanded = false;
   final TextEditingController _reviewController = TextEditingController();
-  List<double> _ratingDistribution = [];
+  List<double> _ratingDistribution = List.filled(10, 0.0);
   List<Movie> _similarMovies = [];
-  late double _averageRating;
+  List<MovieReview> _reviews = [];
+  int _ratingsCount = 0;
   bool _showAppBarTitle = false;
 
   bool _isWatched = false;
@@ -45,9 +46,30 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
     _tabController = TabController(length: 4, vsync: this);
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-    _generateMockData();
+    _loadSimilarMovies();
     _fetchDetail();
     _fetchUserState();
+    _fetchReviews();
+  }
+
+  /// Load public ratings (average/distribution) + reviews from the backend.
+  Future<void> _fetchReviews() async {
+    try {
+      final r = await MovieService.getMovieReviews(_movie.id);
+      if (!mounted) return;
+      final maxCount =
+          r.distribution.isEmpty ? 0 : r.distribution.reduce(max);
+      setState(() {
+        _reviews = r.reviews;
+        _ratingsCount = r.count;
+        // Normalise bar heights against the tallest bucket.
+        _ratingDistribution = r.distribution
+            .map((c) => maxCount > 0 ? c / maxCount : 0.0)
+            .toList();
+      });
+    } catch (_) {
+      // Non-blocking: keep zeros if reviews can't be fetched.
+    }
   }
 
   /// Load the full movie (genres/cast/crew/trailer) from the DB-backed API.
@@ -143,6 +165,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             : _reviewController.text.trim(),
       );
       if (mounted) Navigator.pop(context);
+      // La note du film est recalculée côté back : on rafraîchit le détail
+      // (vote_average), la distribution/reviews et l'état utilisateur.
+      await _fetchDetail();
+      await _fetchReviews();
+      await _fetchUserState();
     } catch (e) {
       _showError(e);
     }
@@ -159,21 +186,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
     }
   }
 
-  void _generateMockData() {
-    final random = Random();
-    _ratingDistribution = List.generate(10, (_) => random.nextDouble());
-    double sum = _ratingDistribution.reduce((a, b) => a + b);
-    _ratingDistribution = _ratingDistribution.map((v) => v / sum).toList();
-
-    _averageRating = (0.5 + random.nextDouble() * 4.5);
-    _averageRating = double.parse(_averageRating.toStringAsFixed(1));
-
-    MovieService.getMockMovies().then((movies) {
+  // Similar movies (v1 : films au hasard côté back ; modèle IA plus tard).
+  void _loadSimilarMovies() {
+    MovieService.getSimilar(_movie.id).then((movies) {
       if (mounted) {
-        setState(() {
-          _similarMovies = (List<Movie>.from(movies)..shuffle()).take(10).toList();
-        });
+        setState(() => _similarMovies = movies);
       }
+    }).catchError((_) {
+      // Non-bloquant : on laisse la section vide en cas d'échec.
     });
   }
 
@@ -435,26 +455,40 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                 ),
               ),
               const SizedBox(width: 20),
-              Column(
-                children: [
-                  Text(
-                    '$_averageRating',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  Row(
-                    children: List.generate(5, (i) {
-                      double starValue = i + 1.0;
-                      if (_averageRating >= starValue) {
-                        return const Icon(Icons.star, size: 10, color: AppTheme.secondaryPurple);
-                      } else if (_averageRating >= starValue - 0.5) {
-                        return const Icon(Icons.star_half, size: 10, color: AppTheme.secondaryPurple);
-                      } else {
-                        return const Icon(Icons.star_border, size: 10, color: AppTheme.secondaryPurple);
-                      }
-                    }),
-                  )
-                ],
-              )
+              Builder(builder: (_) {
+                // Note du film sur 0–5 : communautaire si présente, sinon TMDB
+                // (renvoyée par l'endpoint détail, déjà ramenée sur 0–5).
+                final avg5raw = _movie.voteAverage;
+                final avg5 = avg5raw ?? 0;
+                // Arrondi à la demi-étoile la plus proche : gère les notes
+                // décimales non multiples de 0.5 (ex. 3.65 → 3.5★, 3.9 → 4★).
+                final halfStars = (avg5 * 2).round(); // 0..10
+                return Column(
+                  children: [
+                    Text(
+                      avg5raw != null ? avg5raw.toStringAsFixed(1) : '—',
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    Row(
+                      children: List.generate(5, (i) {
+                        final full = (i + 1) * 2; // seuil "plein" en demi-étoiles
+                        if (halfStars >= full) {
+                          return const Icon(Icons.star, size: 10, color: AppTheme.secondaryPurple);
+                        } else if (halfStars >= full - 1) {
+                          return const Icon(Icons.star_half, size: 10, color: AppTheme.secondaryPurple);
+                        } else {
+                          return const Icon(Icons.star_border, size: 10, color: AppTheme.secondaryPurple);
+                        }
+                      }),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$_ratingsCount',
+                      style: const TextStyle(fontSize: 10, color: Colors.white38),
+                    ),
+                  ],
+                );
+              })
             ],
           ),
         ],
@@ -959,13 +993,16 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Widget _buildReviewsSection(AppLocalizations l10n) {
-    final List<Map<String, dynamic>> mockReviews = [
-      {'user': 'Alex',   'userId': 'user-alex',   'rating': 4.5, 'date': 'June 10, 2026', 'text': 'A masterpiece of modern cinema. The pacing is perfect.'},
-      {'user': 'Sam',    'userId': 'user-sam',    'rating': 3.0, 'date': 'June 8, 2026',  'text': 'Interesting concept, but the execution felt a bit rushed.'},
-      {'user': 'Jordan', 'userId': 'user-jordan', 'rating': 5.0, 'date': 'June 5, 2026',  'text': 'I could watch this every day. The acting is phenomenal.'},
-      {'user': 'Taylor', 'userId': 'user-taylor', 'rating': 4.0, 'date': 'May 30, 2026',  'text': 'Great visuals and sound design. Recommended.'},
-      {'user': 'Morgan', 'userId': 'user-morgan', 'rating': 2.5, 'date': 'May 25, 2026',  'text': 'Not my cup of tea. Too slow for my taste.'},
-    ];
+    // Map the typed reviews to the shape AllReviewsScreen / _reviewItem expect.
+    final reviewMaps = _reviews
+        .map((r) => <String, dynamic>{
+              'user': r.username,
+              'userId': r.userId,
+              'rating': r.stars,
+              'text': r.review,
+              'date': r.createdAt.toIso8601String().split('T').first,
+            })
+        .toList();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
@@ -977,21 +1014,33 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white38, letterSpacing: 1.2),
           ),
           const SizedBox(height: 25),
-          ...mockReviews.take(3).map((r) => _reviewItem(r['user'], r['userId'], r['rating'], r['text'])),
-          Center(
-            child: TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AllReviewsScreen(
-                    movie: _movie,
-                    reviews: mockReviews,
+          if (reviewMaps.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                l10n.noReviewsYet,
+                style: const TextStyle(color: Colors.white38, fontSize: 13),
+              ),
+            )
+          else ...[
+            ...reviewMaps.take(3).map((r) =>
+                _reviewItem(r['user'], r['userId'], r['rating'], r['text'])),
+            if (reviewMaps.length > 3)
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AllReviewsScreen(
+                        movie: _movie,
+                        reviews: reviewMaps,
+                      ),
+                    ),
                   ),
+                  child: Text(l10n.allReviews, style: const TextStyle(color: AppTheme.secondaryPurple, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ),
-              child: Text(l10n.allReviews, style: const TextStyle(color: AppTheme.secondaryPurple, fontWeight: FontWeight.bold, fontSize: 12)),
-            ),
-          ),
+          ],
         ],
       ),
     );

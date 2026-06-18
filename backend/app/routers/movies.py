@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from app.deps import CurrentUser, DbSession
 from app.integrations.tmdb import TMDBRateLimited, TMDBUnavailable
 from app.schemas.movie import MovieCard, MovieDetailOut, MovieIdsIn, PagedMovies
-from app.schemas.user_movie import RatingIn, UserStateOut
+from app.schemas.user_movie import MovieRatingsOut, RatingIn, UserStateOut
 from app.services.movie_service import MovieNotFound, MovieService
 from app.services.user_movie_service import UserMovieService
 
@@ -82,6 +82,25 @@ def get_movie(tmdb_id: int, db: DbSession, current_user: CurrentUser):
 @router.get("/{tmdb_id}/user-state", response_model=UserStateOut)
 def get_user_state(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     return UserMovieService(db).get_user_state(current_user, tmdb_id)
+
+
+@router.get("/{tmdb_id}/reviews", response_model=MovieRatingsOut)
+def get_movie_reviews(tmdb_id: int, db: DbSession, current_user: CurrentUser):
+    # Public: aggregate ratings + text reviews from all users.
+    return MovieService(db).get_movie_ratings(tmdb_id)
+
+
+@router.get("/{tmdb_id}/similar", response_model=list[MovieCard])
+def get_similar_movies(
+    tmdb_id: int,
+    db: DbSession,
+    current_user: CurrentUser,
+    limit: int = Query(default=10, ge=1, le=30),
+):
+    # V1: random movies from our catalogue (AI model to come later).
+    return MovieService(db).list_similar(
+        tmdb_id, limit=limit, language=current_user.language
+    )
 
 
 # ---- Favorites ----

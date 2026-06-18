@@ -78,9 +78,17 @@ class UserMovieService:
         self._ensure_movie_exists(tmdb_id)
         half_stars = round(stars * 2)
         self.ratings.upsert(user.id, tmdb_id, half_stars, review)
+        self._recompute_vote_average(tmdb_id)
 
     def remove_rating(self, user: User, tmdb_id: int) -> None:
         self.ratings.remove(user.id, tmdb_id)
+        self._recompute_vote_average(tmdb_id)
+
+    def _recompute_vote_average(self, tmdb_id: int) -> None:
+        # movies.vote_average holds the Deckard community average; recompute it
+        # from the ratings table. None again when the last rating is removed.
+        avg = self.ratings.community_average(tmdb_id)
+        self.movies.repo.set_vote_average(tmdb_id, avg)
 
     # ------------ read-side ------------
 

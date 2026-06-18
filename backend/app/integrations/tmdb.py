@@ -85,6 +85,10 @@ class TMDBClient:
         # known movie genders
         return self._get("/genre/movie/list", params={"language": language})
 
+    def movie(self, tmdb_id: int, *, language: str = "fr-FR") -> dict[str, Any]:
+        # single movie details (used as a fallback for vote_average)
+        return self._get(f"/movie/{tmdb_id}", params={"language": language})
+
     # ----- internal -----
 
     def _get(self, path: str, *, params: dict[str, Any] | None = None) -> dict[str, Any]:

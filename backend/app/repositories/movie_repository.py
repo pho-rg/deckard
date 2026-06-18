@@ -1,4 +1,4 @@
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.featured_movie import FeaturedMovie
@@ -30,6 +30,13 @@ class MovieRepository:
         self.db = db
 
     # ------------ reads ------------
+
+    def set_vote_average(self, tmdb_id: int, value: float | None) -> None:
+        # Persist the community rating average onto the movie row.
+        self.db.execute(
+            update(Movie).where(Movie.tmdb_id == tmdb_id).values(vote_average=value)
+        )
+        self.db.commit()
 
     def get_full(self, tmdb_id: int) -> Movie | None:
         return self.db.scalar(
@@ -171,6 +178,21 @@ class MovieRepository:
 
     def get_person(self, person_id: int) -> Person | None:
         return self.db.get(Person, person_id)
+
+    # ------------ similar (v1: random) ------------
+
+    def random_similar(self, tmdb_id: int, *, limit: int = 10) -> list[Movie]:
+        """V1 of "similar movies": random movies (excluding the current one).
+        To be replaced by an AI model later."""
+        return list(
+            self.db.scalars(
+                select(Movie)
+                .where(Movie.tmdb_id != tmdb_id)
+                .order_by(func.random())
+                .limit(limit)
+                .options(*_SUMMARY_OPTIONS)
+            ).unique()
+        )
 
     def filmography(self, person_id: int, *, limit: int = 100) -> list[Movie]:
         """Movies featuring the person as either cast or crew."""

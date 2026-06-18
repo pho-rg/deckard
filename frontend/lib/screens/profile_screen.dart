@@ -274,13 +274,16 @@ class _ProfileScreenState extends State<ProfileScreen>
         user: user,
         l10n: l10n,
         onSaved: ({username, email, language, currentPassword, newPassword}) async {
-          await _service.updateMe(
-            username: username,
-            email: email,
-            language: language,
-            currentPassword: currentPassword,
-            newPassword: newPassword,
-          );
+          if (username != null || email != null || language != null) {
+            await _service.updateMe(
+              username: username,
+              email: email,
+              language: language,
+            );
+          }
+          if (currentPassword != null && newPassword != null) {
+            await _service.changePassword(currentPassword, newPassword);
+          }
           _refresh();
         },
       ),
@@ -725,10 +728,10 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         newPassword: newPw,
       );
       if (mounted) Navigator.of(context).pop();
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la sauvegarde')),
+          SnackBar(content: Text('$e')),
         );
       }
     } finally {
@@ -838,6 +841,14 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               obscure: _obscureCurrent,
               onToggle: () =>
                   setState(() => _obscureCurrent = !_obscureCurrent),
+              validator: (v) {
+                // Requis dès qu'un nouveau mot de passe est saisi.
+                if (_newPasswordCtrl.text.isNotEmpty &&
+                    (v == null || v.isEmpty)) {
+                  return l10n.currentPasswordLabel;
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
             _PasswordField(

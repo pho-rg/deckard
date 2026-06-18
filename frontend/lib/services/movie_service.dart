@@ -78,6 +78,16 @@ class MovieService {
         .toList();
   }
 
+  /// Recommandations personnelles (v1 : films au hasard de la BDD côté back ;
+  /// un modèle IA sera branché plus tard).
+  /// GET /recommendations -> list<MovieCard>
+  static Future<List<Movie>> getRecommendations() async {
+    final data = await _api.get('/recommendations');
+    return (data as List)
+        .map((m) => Movie.fromCard(m as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Filmographie d'une personne (films où elle apparaît au cast ou crew).
   /// GET /persons/{id}/filmography -> list<MovieCard>
   static Future<List<Movie>> getFilmography(int personId) async {
@@ -94,6 +104,22 @@ class MovieService {
     return results
         .map((m) => Movie.fromCard(m as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Films similaires (v1 : films au hasard côté back ; modèle IA plus tard).
+  /// GET /movies/{tmdb_id}/similar -> list<MovieCard>
+  static Future<List<Movie>> getSimilar(int tmdbId) async {
+    final data = await _api.get('/movies/$tmdbId/similar');
+    return (data as List)
+        .map((m) => Movie.fromCard(m as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Public ratings aggregate + reviews for a movie.
+  /// GET /movies/{tmdb_id}/reviews -> MovieRatingsOut
+  static Future<MovieRatings> getMovieReviews(int tmdbId) async {
+    final data = await _api.get('/movies/$tmdbId/reviews');
+    return MovieRatings.fromJson(data as Map<String, dynamic>);
   }
 
   /// The signed-in user's relationship to a movie.

@@ -1,11 +1,13 @@
 import logging
 import math
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.integrations.tmdb import TMDBClient, get_tmdb_client
+from app.integrations.tmdb import TMDBClient, TMDBError, get_tmdb_client
 from app.repositories.movie_repository import MovieRepository
+from app.repositories.rating_repository import RatingRepository
 from app.schemas.movie import (
     MovieCard,
     MovieDetailOut,
@@ -13,6 +15,7 @@ from app.schemas.movie import (
     PagedPersons,
     PersonCard,
 )
+from app.schemas.user_movie import MovieRatingsOut
 from app.services import presenter, tmdb_cache
 from app.services.localization import to_iso2
 
@@ -35,6 +38,7 @@ class MovieService:
         # TMDB is only needed for the trending / now-playing passthroughs.
         self._tmdb = tmdb
         self.repo = MovieRepository(db)
+        self.ratings = RatingRepository(db)
 
     @property
     def tmdb(self) -> TMDBClient:
@@ -48,7 +52,26 @@ class MovieService:
         movie = self.repo.get_full(tmdb_id)
         if movie is None:
             raise MovieNotFound(tmdb_id)
-        return presenter.movie_detail(movie, to_iso2(language))
+        detail = presenter.movie_detail(movie, to_iso2(language))
+        # vote_average = note communautaire Deckard. Si aucune note Deckard
+        # (null), on récupère la note TMDB à la volée (non persistée en base).
+        if detail.vote_average is None:
+            detail.vote_average = self._tmdb_vote_average(tmdb_id, language)
+        return detail
+
+    def _tmdb_vote_average(
+        self, tmdb_id: int, language: str
+    ) -> Decimal | None:
+        try:
+            data = self.tmdb.movie(tmdb_id, language=language)
+        except TMDBError:
+            # Fallback best-effort : on ne bloque pas la fiche si TMDB échoue.
+            return None
+        va = data.get("vote_average")
+        if va is None:
+            return None
+        # TMDB note is on 0-10 → on ramène à l'échelle 0-5 du front.
+        return Decimal(str(round(float(va) / 2, 1)))
 
     def get_featured(self, *, language: str = "fr-FR") -> MovieDetailOut | None:
         movie = self.repo.get_featured()
@@ -79,6 +102,22 @@ class MovieService:
             total_results=total,
             results=[presenter.movie_summary(m, iso) for m in movies],
         )
+
+    def list_similar(
+        self, tmdb_id: int, *, limit: int = 10, language: str = "fr-FR"
+    ) -> list[MovieCard]:
+        # V1: random movies. Will be backed by an AI model later.
+        iso = to_iso2(language)
+        movies = self.repo.random_similar(tmdb_id, limit=limit)
+        return [presenter.movie_card(m, iso) for m in movies]
+
+    def get_movie_ratings(self, tmdb_id: int) -> MovieRatingsOut:
+        # Public aggregate (average/count/distribution) + the text reviews.
+        # The average is recomputed from the DB on each read, so it reflects
+        # a user's new rating immediately.
+        average, count, distribution = self.ratings.stats_for_movie(tmdb_id)
+        reviews = self.ratings.list_reviews_for_movie(tmdb_id)
+        return presenter.movie_ratings(average, count, distribution, reviews)
 
     # ------------ people (DB-sourced) ------------
 

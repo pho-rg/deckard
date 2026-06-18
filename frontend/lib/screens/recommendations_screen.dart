@@ -71,7 +71,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
   }
 
   Future<void> _loadMovies() async {
-    final movies = await MovieService.getMockMovies();
+    // V1 : recommandations = films au hasard de la BDD (côté backend).
+    final movies = await MovieService.getRecommendations();
     final genres = <String>{};
     for (final m in movies) {
       for (final g in (m.genres ?? [])) {
@@ -104,17 +105,36 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     });
   }
 
+  // "Dislike" : retire le film des recommandations courantes.
   void _skip(int id) => setState(() => _skipped.add(id));
 
-  void _toggleWatchlist(int id) {
+  Future<void> _toggleWatchlist(int id) async {
+    final wasWatchlisted = _watchlisted.contains(id);
+    // Optimiste : on met à jour l'UI tout de suite.
     setState(() {
-      if (_watchlisted.contains(id)) {
+      if (wasWatchlisted) {
         _watchlisted.remove(id);
       } else {
         _watchlisted.add(id);
-        // TODO: POST /users/me/watchlist { tmdb_id: id }
       }
     });
+    try {
+      if (wasWatchlisted) {
+        await MovieService.removeFromWatchlist(id);
+      } else {
+        await MovieService.addToWatchlist(id);
+      }
+    } catch (_) {
+      // Échec : on annule le changement optimiste.
+      if (!mounted) return;
+      setState(() {
+        if (wasWatchlisted) {
+          _watchlisted.add(id);
+        } else {
+          _watchlisted.remove(id);
+        }
+      });
+    }
   }
 
   void _showFilterSheet(AppLocalizations l10n) {
