@@ -12,7 +12,7 @@ import requests
 import boto3
 import sys
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from botocore.exceptions import ClientError
 from sqlalchemy import create_engine
 from requests.adapters import HTTPAdapter
@@ -33,7 +33,7 @@ logger = logging.getLogger()
 # Variables d'environnement
 API_KEY = os.environ.get("TMDB_API_KEY")
 DATABASE_URL = os.environ.get("DATABASE_URL")
-S3_BUCKET = os.environ.get("BUCKET_NAME")
+S3_BUCKET = os.environ.get("S3_BUCKET")
 STATE_FILE_KEY = "state/last_tmdb_sync.txt"
 
 CHANGES_BASE_URL = "https://api.themoviedb.org/3/movie/changes"
@@ -51,7 +51,7 @@ def get_last_sync_date() -> str:
     except ClientError as e:
         if e.response['Error']['Code'] == 'NoSuchKey':
             logger.info("Aucun état de synchro trouvé sur S3. Initialisation à J-2.")
-            default_date = datetime.utcnow() - timedelta(days=2)
+            default_date = datetime.now(timezone.utc) - timedelta(days=2)
             return default_date.strftime("%Y-%m-%d")
         else:
             raise e
@@ -154,7 +154,7 @@ def main():
             logger.info(f"Exécution MANUELLE demandée du {start_date} au {end_date}")
         else:
             start_date = get_last_sync_date()
-            end_date = datetime.utcnow().strftime("%Y-%m-%d")
+            end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         if start_date == end_date and not is_manual_run:
             logger.info("La synchro a déjà été effectuée aujourd'hui.")
