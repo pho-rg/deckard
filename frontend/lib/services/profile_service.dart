@@ -1,128 +1,85 @@
-import 'dart:math';
-
-import '../models/movie.dart';
 import '../models/profile_models.dart';
-import 'movie_service.dart';
+import 'api_service.dart';
 
-// Hardcoded mock user — swap for real API calls once auth is ready.
-final _mockUser = ProfileUser(
-  id: 'mock-user-id',
-  username: 'hugo',
-  email: 'rhugo74@gmail.com',
-  language: 'fr-FR',
-  region: 'FR',
-  createdAt: DateTime(2024, 3, 15),
-);
-
+/// Profil utilisateur câblé au backend (DB).
+/// Routes: GET/PUT /users/me, /users/me/{favorites,watched,ratings},
+/// et /users/{id}/{favorites,watched,ratings} pour les autres utilisateurs.
 class ProfileService {
+  final _api = ApiService();
+
   // ── Current user ──────────────────────────────────────────────────────────
 
-  Future<ProfileUser> getMe() async => _mockUser;
+  /// GET /users/me -> UserOut
+  Future<ProfileUser> getMe() async {
+    final data = await _api.get('/users/me');
+    return ProfileUser.fromJson(data as Map<String, dynamic>);
+  }
 
+  /// PUT /users/me { username?, email?, language? } -> UserOut
   Future<ProfileUser> updateMe({
     String? username,
     String? email,
     String? language,
-    String? currentPassword, // ignored in mock; will be verified server-side
-    String? newPassword,     // ignored in mock; will be hashed server-side
   }) async {
-    // TODO: PUT /users/me once auth is wired
-    return ProfileUser(
-      id: _mockUser.id,
-      username: username ?? _mockUser.username,
-      email: email ?? _mockUser.email,
-      language: language ?? _mockUser.language,
-      region: _mockUser.region,
-      createdAt: _mockUser.createdAt,
-    );
+    final body = <String, dynamic>{
+      if (username != null) 'username': username,
+      if (email != null) 'email': email,
+      if (language != null) 'language': language,
+    };
+    final data = await _api.put('/users/me', body);
+    return ProfileUser.fromJson(data as Map<String, dynamic>);
   }
 
-  Future<List<ProfileMovieCard>> getMyFavorites() async {
-    final movies = await MovieService.getMockMovies();
-    final rng = Random(1); // fixed seed → stable subset
-    final shuffled = List<Movie>.from(movies)..shuffle(rng);
-    return shuffled.take(18).map(_toCard).toList();
-  }
-
-  Future<List<ProfileMovieCard>> getMyWatched() async {
-    final movies = await MovieService.getMockMovies();
-    final rng = Random(2);
-    final shuffled = List<Movie>.from(movies)..shuffle(rng);
-    return shuffled.take(34).map(_toCard).toList();
-  }
-
-  Future<List<ProfileRating>> getMyRatings() async {
-    final movies = await MovieService.getMockMovies();
-    final rng = Random(3);
-    final shuffled = List<Movie>.from(movies)..shuffle(rng);
-    final picks = shuffled.take(12).toList();
-
-    final starOptions = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];
-    final sampleReviews = [
-      'Un chef-d\'œuvre absolu.',
-      'Très bon film, je recommande.',
-      'Décevant par rapport aux attentes.',
-      'Casting impeccable, mise en scène soignée.',
-      null,
-      'Pas mal mais trop long.',
-      null,
-      'Magistral de bout en bout.',
-      'Une belle surprise.',
-      null,
-      'Incontournable.',
-      'Bof, rien de transcendant.',
-    ];
-
-    return List.generate(picks.length, (i) {
-      final stars = starOptions[rng.nextInt(starOptions.length)];
-      return ProfileRating(
-        movie: _toCard(picks[i]),
-        stars: stars,
-        review: sampleReviews[i % sampleReviews.length],
-        createdAt: DateTime.now().subtract(Duration(days: i * 12 + 3)),
-      );
+  /// Change le mot de passe (vérifie l'actuel côté serveur).
+  /// PUT /users/me/password { current_password, new_password }
+  Future<void> changePassword(
+      String currentPassword, String newPassword) async {
+    await _api.put('/users/me/password', {
+      'current_password': currentPassword,
+      'new_password': newPassword,
     });
   }
 
-  // ── Other users ───────────────────────────────────────────────────────────
+  /// GET /users/me/favorites -> list<MovieCard>
+  Future<List<ProfileMovieCard>> getMyFavorites() =>
+      _cards('/users/me/favorites');
 
-  Future<List<ProfileMovieCard>> getUserFavorites(String userId) async {
-    final movies = await MovieService.getMockMovies();
-    final rng = Random(userId.hashCode);
-    final shuffled = List<Movie>.from(movies)..shuffle(rng);
-    return shuffled.take(10).map(_toCard).toList();
+  /// GET /users/me/watched -> list<MovieCard>
+  Future<List<ProfileMovieCard>> getMyWatched() => _cards('/users/me/watched');
+
+  /// GET /users/me/ratings -> list<RatingWithMovieOut>
+  Future<List<ProfileRating>> getMyRatings() => _ratings('/users/me/ratings');
+
+  // ── Other users (gated par l'amitié côté backend) ──────────────────────────
+
+  /// GET /users/{id} -> UserProfileOut (id, username, created_at)
+  Future<ProfileUser> getUser(String userId) async {
+    final data = await _api.get('/users/$userId');
+    return ProfileUser.fromPublicJson(data as Map<String, dynamic>);
   }
 
-  Future<List<ProfileMovieCard>> getUserWatched(String userId) async {
-    final movies = await MovieService.getMockMovies();
-    final rng = Random(userId.hashCode + 1);
-    final shuffled = List<Movie>.from(movies)..shuffle(rng);
-    return shuffled.take(22).map(_toCard).toList();
+  Future<List<ProfileMovieCard>> getUserFavorites(String userId) =>
+      _cards('/users/$userId/favorites');
+
+  Future<List<ProfileMovieCard>> getUserWatched(String userId) =>
+      _cards('/users/$userId/watched');
+
+  Future<List<ProfileRating>> getUserRatings(String userId) =>
+      _ratings('/users/$userId/ratings');
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  Future<List<ProfileMovieCard>> _cards(String endpoint) async {
+    final data = await _api.get(endpoint);
+    return (data as List)
+        .map((m) => ProfileMovieCard.fromJson(m as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<List<ProfileRating>> getUserRatings(String userId) async {
-    final movies = await MovieService.getMockMovies();
-    final rng = Random(userId.hashCode + 2);
-    final shuffled = List<Movie>.from(movies)..shuffle(rng);
-    return shuffled.take(8).map((m) {
-      final stars = [2.5, 3.0, 3.5, 4.0, 4.5][rng.nextInt(5)];
-      return ProfileRating(
-        movie: _toCard(m),
-        stars: stars,
-        review: null,
-        createdAt: DateTime.now().subtract(Duration(days: rng.nextInt(365))),
-      );
-    }).toList();
+  Future<List<ProfileRating>> _ratings(String endpoint) async {
+    final data = await _api.get(endpoint);
+    return (data as List)
+        .map((r) => ProfileRating.fromJson(r as Map<String, dynamic>))
+        .toList();
   }
-
-  // ── Helper ────────────────────────────────────────────────────────────────
-
-  ProfileMovieCard _toCard(Movie m) => ProfileMovieCard(
-        tmdbId: m.id,
-        title: m.title,
-        posterUrl: m.posterUrl,
-        backdropUrl: m.backdropUrl,
-        voteAverage: m.voteAverage,
-        releaseDate: m.releaseDate,
-      );
 }

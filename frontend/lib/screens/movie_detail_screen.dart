@@ -26,22 +26,153 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   double _userRating = 0.0;
   bool _isSynopsisExpanded = false;
   final TextEditingController _reviewController = TextEditingController();
-  List<double> _ratingDistribution = [];
+  List<double> _ratingDistribution = List.filled(10, 0.0);
   List<Movie> _similarMovies = [];
-  late double _averageRating;
+  List<MovieReview> _reviews = [];
+  int _ratingsCount = 0;
   bool _showAppBarTitle = false;
 
   bool _isWatched = false;
   bool _isLiked = false;
   bool _isInWatchlist = false;
 
+  late Movie _movie;
+  bool _loadingDetail = true;
+
   @override
   void initState() {
     super.initState();
+    _movie = widget.movie;
     _tabController = TabController(length: 4, vsync: this);
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-    _generateMockData();
+    _loadSimilarMovies();
+    _fetchDetail();
+    _fetchUserState();
+    _fetchReviews();
+  }
+
+  /// Load public ratings (average/distribution) + reviews from the backend.
+  Future<void> _fetchReviews() async {
+    try {
+      final r = await MovieService.getMovieReviews(_movie.id);
+      if (!mounted) return;
+      final maxCount =
+          r.distribution.isEmpty ? 0 : r.distribution.reduce(max);
+      setState(() {
+        _reviews = r.reviews;
+        _ratingsCount = r.count;
+        // Normalise bar heights against the tallest bucket.
+        _ratingDistribution = r.distribution
+            .map((c) => maxCount > 0 ? c / maxCount : 0.0)
+            .toList();
+      });
+    } catch (_) {
+      // Non-blocking: keep zeros if reviews can't be fetched.
+    }
+  }
+
+  /// Load the full movie (genres/cast/crew/trailer) from the DB-backed API.
+  Future<void> _fetchDetail() async {
+    try {
+      final full = await MovieService.getMovieDetail(_movie.id);
+      if (mounted) {
+        setState(() {
+          _movie = full;
+          _loadingDetail = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loadingDetail = false);
+    }
+  }
+
+  /// Load the signed-in user's state for this movie (favorite/watchlist/
+  /// watched/rating/review).
+  Future<void> _fetchUserState() async {
+    try {
+      final s = await MovieService.getUserState(_movie.id);
+      if (mounted) {
+        setState(() {
+          _isLiked = s.isFavorite;
+          _isInWatchlist = s.inWatchlist;
+          _isWatched = s.isWatched;
+          _userRating = s.userRating ?? 0.0;
+          if (s.userReview != null) _reviewController.text = s.userReview!;
+        });
+      }
+    } catch (_) {
+      // Non-blocking: leave defaults if the state can't be fetched.
+    }
+  }
+
+  void _showError(Object e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$e')),
+    );
+  }
+
+  Future<void> _toggleFavorite() async {
+    final next = !_isLiked;
+    try {
+      if (next) {
+        await MovieService.addFavorite(_movie.id);
+      } else {
+        await MovieService.removeFavorite(_movie.id);
+      }
+      if (mounted) setState(() => _isLiked = next);
+    } catch (e) {
+      _showError(e);
+    }
+  }
+
+  Future<void> _toggleWatchlist() async {
+    final next = !_isInWatchlist;
+    try {
+      if (next) {
+        await MovieService.addToWatchlist(_movie.id);
+      } else {
+        await MovieService.removeFromWatchlist(_movie.id);
+      }
+      if (mounted) setState(() => _isInWatchlist = next);
+    } catch (e) {
+      _showError(e);
+    }
+  }
+
+  Future<void> _toggleWatched() async {
+    final next = !_isWatched;
+    try {
+      if (next) {
+        await MovieService.markWatched(_movie.id);
+      } else {
+        await MovieService.unmarkWatched(_movie.id);
+      }
+      if (mounted) setState(() => _isWatched = next);
+    } catch (e) {
+      _showError(e);
+    }
+  }
+
+  Future<void> _submitRating() async {
+    try {
+      await MovieService.setRating(
+        _movie.id,
+        _userRating,
+        _reviewController.text.trim().isEmpty
+            ? null
+            : _reviewController.text.trim(),
+      );
+      if (mounted) Navigator.pop(context);
+      // La note du film est recalculée côté back : on rafraîchit le détail
+      // (vote_average), la distribution/reviews et l'état utilisateur.
+      await _fetchDetail();
+      await _fetchReviews();
+      await _fetchUserState();
+    } catch (e) {
+      _showError(e);
+    }
   }
 
   void _onScroll() {
@@ -55,21 +186,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
     }
   }
 
-  void _generateMockData() {
-    final random = Random();
-    _ratingDistribution = List.generate(10, (_) => random.nextDouble());
-    double sum = _ratingDistribution.reduce((a, b) => a + b);
-    _ratingDistribution = _ratingDistribution.map((v) => v / sum).toList();
-
-    _averageRating = (0.5 + random.nextDouble() * 4.5);
-    _averageRating = double.parse(_averageRating.toStringAsFixed(1));
-
-    MovieService.getMockMovies().then((movies) {
+  // Similar movies (v1 : films au hasard côté back ; modèle IA plus tard).
+  void _loadSimilarMovies() {
+    MovieService.getSimilar(_movie.id).then((movies) {
       if (mounted) {
-        setState(() {
-          _similarMovies = (List<Movie>.from(movies)..shuffle()).take(10).toList();
-        });
+        setState(() => _similarMovies = movies);
       }
+    }).catchError((_) {
+      // Non-bloquant : on laisse la section vide en cas d'échec.
     });
   }
 
@@ -82,7 +206,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Future<void> _launchTrailer() async {
-    final url = widget.movie.officialTrailerUrl;
+    final url = _movie.officialTrailerUrl;
     if (url != null) {
       final uri = Uri.parse(url);
       try {
@@ -97,7 +221,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final directorCrew = widget.movie.crew?.firstWhere(
+    final directorCrew = _movie.crew?.firstWhere(
       (c) => c.job == 'Director',
       orElse: () => Crew(id: 0, name: 'Unknown', job: '', department: ''),
     );
@@ -151,7 +275,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
         duration: const Duration(milliseconds: 200),
         opacity: _showAppBarTitle ? 1.0 : 0.0,
         child: Text(
-          widget.movie.title.toUpperCase(),
+          _movie.title.toUpperCase(),
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -164,7 +288,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
           fit: StackFit.expand,
           children: [
             CachedNetworkImage(
-              imageUrl: widget.movie.backdropUrl,
+              imageUrl: _movie.backdropUrl,
               fit: BoxFit.cover,
             ),
             Container(
@@ -192,14 +316,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          MovieCard(movie: widget.movie, width: 100),
+          MovieCard(movie: _movie, width: 100),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.movie.title.toUpperCase(),
+                  _movie.title.toUpperCase(),
                   style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -209,7 +333,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                 Row(
                   children: [
                     Text(
-                      '${widget.movie.releaseDate?.split('-').first ?? 'N/A'} • ',
+                      '${_movie.releaseDate?.split('-').first ?? 'N/A'} • ',
                       style: const TextStyle(
                           color: Colors.white70, fontSize: 14),
                     ),
@@ -256,14 +380,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (widget.movie.overview != null)
+                if (_movie.overview != null)
                   GestureDetector(
                     onTap: () => setState(() => _isSynopsisExpanded = true),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
-                          widget.movie.overview!,
+                          _movie.overview!,
                           style: const TextStyle(color: Colors.white60, fontSize: 14, height: 1.4),
                           maxLines: _isSynopsisExpanded ? null : 4,
                           overflow: _isSynopsisExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
@@ -331,26 +455,40 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                 ),
               ),
               const SizedBox(width: 20),
-              Column(
-                children: [
-                  Text(
-                    '$_averageRating',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  Row(
-                    children: List.generate(5, (i) {
-                      double starValue = i + 1.0;
-                      if (_averageRating >= starValue) {
-                        return const Icon(Icons.star, size: 10, color: AppTheme.secondaryPurple);
-                      } else if (_averageRating >= starValue - 0.5) {
-                        return const Icon(Icons.star_half, size: 10, color: AppTheme.secondaryPurple);
-                      } else {
-                        return const Icon(Icons.star_border, size: 10, color: AppTheme.secondaryPurple);
-                      }
-                    }),
-                  )
-                ],
-              )
+              Builder(builder: (_) {
+                // Note du film sur 0–5 : communautaire si présente, sinon TMDB
+                // (renvoyée par l'endpoint détail, déjà ramenée sur 0–5).
+                final avg5raw = _movie.voteAverage;
+                final avg5 = avg5raw ?? 0;
+                // Arrondi à la demi-étoile la plus proche : gère les notes
+                // décimales non multiples de 0.5 (ex. 3.65 → 3.5★, 3.9 → 4★).
+                final halfStars = (avg5 * 2).round(); // 0..10
+                return Column(
+                  children: [
+                    Text(
+                      avg5raw != null ? avg5raw.toStringAsFixed(1) : '—',
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    Row(
+                      children: List.generate(5, (i) {
+                        final full = (i + 1) * 2; // seuil "plein" en demi-étoiles
+                        if (halfStars >= full) {
+                          return const Icon(Icons.star, size: 10, color: AppTheme.secondaryPurple);
+                        } else if (halfStars >= full - 1) {
+                          return const Icon(Icons.star_half, size: 10, color: AppTheme.secondaryPurple);
+                        } else {
+                          return const Icon(Icons.star_border, size: 10, color: AppTheme.secondaryPurple);
+                        }
+                      }),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$_ratingsCount',
+                      style: const TextStyle(fontSize: 10, color: Colors.white38),
+                    ),
+                  ],
+                );
+              })
             ],
           ),
         ],
@@ -431,12 +569,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    widget.movie.title,
+                    _movie.title,
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   Text(
-                    widget.movie.releaseDate?.split('-').first ?? '',
+                    _movie.releaseDate?.split('-').first ?? '',
                     style: const TextStyle(color: Colors.white38),
                   ),
                   const SizedBox(height: 30),
@@ -447,19 +585,28 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                         _isWatched ? Icons.visibility : Icons.visibility_outlined,
                         _isWatched ? l10n.watched : l10n.watch,
                         _isWatched,
-                        () => setModalState(() => _isWatched = !_isWatched),
+                        () async {
+                          await _toggleWatched();
+                          setModalState(() {});
+                        },
                       ),
                       _buildModalAction(
                         _isLiked ? Icons.favorite : Icons.favorite_border,
                         _isLiked ? l10n.liked : l10n.like,
                         _isLiked,
-                        () => setModalState(() => _isLiked = !_isLiked),
+                        () async {
+                          await _toggleFavorite();
+                          setModalState(() {});
+                        },
                       ),
                       _buildModalAction(
                         _isInWatchlist ? Icons.history_toggle_off : Icons.history_toggle_off,
                         l10n.watchlistAdd,
                         _isInWatchlist,
-                        () => setModalState(() => _isInWatchlist = !_isInWatchlist),
+                        () async {
+                          await _toggleWatchlist();
+                          setModalState(() {});
+                        },
                       ),
                     ],
                   ),
@@ -489,7 +636,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: _submitRating,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.secondaryPurple,
                           foregroundColor: Colors.white,
@@ -616,8 +763,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Widget _buildCastList() {
-    final cast = widget.movie.cast ?? [];
-    if (cast.isEmpty) return const Center(child: Text('No data', style: TextStyle(color: Colors.white38)));
+    final cast = _movie.cast ?? [];
+    if (cast.isEmpty) {
+      return Center(
+        child: _loadingDetail
+            ? const CircularProgressIndicator()
+            : const Text('No data', style: TextStyle(color: Colors.white38)),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       itemCount: cast.length,
@@ -692,8 +845,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Widget _buildCrewList() {
-    final crew = widget.movie.crew ?? [];
-    if (crew.isEmpty) return const Center(child: Text('No data', style: TextStyle(color: Colors.white38)));
+    final crew = _movie.crew ?? [];
+    if (crew.isEmpty) {
+      return Center(
+        child: _loadingDetail
+            ? const CircularProgressIndicator()
+            : const Text('No data', style: TextStyle(color: Colors.white38)),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       itemCount: min(20, crew.length),
@@ -793,7 +952,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Widget _buildGenreList() {
-    final genres = widget.movie.genres ?? [];
+    final genres = _movie.genres ?? [];
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Wrap(
@@ -813,9 +972,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _detailItem(l10n.originalTitle, widget.movie.title),
-        _detailItem(l10n.releaseDate, widget.movie.releaseDate ?? 'N/A'),
-        _detailItem(l10n.popularity, widget.movie.popularity?.toString() ?? 'N/A'),
+        _detailItem(l10n.originalTitle, _movie.title),
+        _detailItem(l10n.releaseDate, _movie.releaseDate ?? 'N/A'),
+        _detailItem(l10n.popularity, _movie.popularity?.toString() ?? 'N/A'),
       ],
     );
   }
@@ -834,13 +993,16 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Widget _buildReviewsSection(AppLocalizations l10n) {
-    final List<Map<String, dynamic>> mockReviews = [
-      {'user': 'Alex',   'userId': 'user-alex',   'rating': 4.5, 'date': 'June 10, 2026', 'text': 'A masterpiece of modern cinema. The pacing is perfect.'},
-      {'user': 'Sam',    'userId': 'user-sam',    'rating': 3.0, 'date': 'June 8, 2026',  'text': 'Interesting concept, but the execution felt a bit rushed.'},
-      {'user': 'Jordan', 'userId': 'user-jordan', 'rating': 5.0, 'date': 'June 5, 2026',  'text': 'I could watch this every day. The acting is phenomenal.'},
-      {'user': 'Taylor', 'userId': 'user-taylor', 'rating': 4.0, 'date': 'May 30, 2026',  'text': 'Great visuals and sound design. Recommended.'},
-      {'user': 'Morgan', 'userId': 'user-morgan', 'rating': 2.5, 'date': 'May 25, 2026',  'text': 'Not my cup of tea. Too slow for my taste.'},
-    ];
+    // Map the typed reviews to the shape AllReviewsScreen / _reviewItem expect.
+    final reviewMaps = _reviews
+        .map((r) => <String, dynamic>{
+              'user': r.username,
+              'userId': r.userId,
+              'rating': r.stars,
+              'text': r.review,
+              'date': r.createdAt.toIso8601String().split('T').first,
+            })
+        .toList();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
@@ -852,21 +1014,33 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white38, letterSpacing: 1.2),
           ),
           const SizedBox(height: 25),
-          ...mockReviews.take(3).map((r) => _reviewItem(r['user'], r['userId'], r['rating'], r['text'])),
-          Center(
-            child: TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AllReviewsScreen(
-                    movie: widget.movie,
-                    reviews: mockReviews,
+          if (reviewMaps.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                l10n.noReviewsYet,
+                style: const TextStyle(color: Colors.white38, fontSize: 13),
+              ),
+            )
+          else ...[
+            ...reviewMaps.take(3).map((r) =>
+                _reviewItem(r['user'], r['userId'], r['rating'], r['text'])),
+            if (reviewMaps.length > 3)
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AllReviewsScreen(
+                        movie: _movie,
+                        reviews: reviewMaps,
+                      ),
+                    ),
                   ),
+                  child: Text(l10n.allReviews, style: const TextStyle(color: AppTheme.secondaryPurple, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ),
-              child: Text(l10n.allReviews, style: const TextStyle(color: AppTheme.secondaryPurple, fontWeight: FontWeight.bold, fontSize: 12)),
-            ),
-          ),
+          ],
         ],
       ),
     );

@@ -7,8 +7,27 @@ import 'screens/main_navigation.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
 import 'providers/locale_provider.dart';
+import 'services/api_service.dart';
+
+/// Clé de navigation globale : permet de rediriger vers le login depuis
+/// n'importe où (ex. handler 401) sans BuildContext.
+final navigatorKey = GlobalKey<NavigatorState>();
+
+bool _handlingUnauthorized = false;
 
 void main() {
+  // Token expiré/invalide (401) → purge la session et renvoie au login.
+  ApiService.onUnauthorized = () async {
+    if (_handlingUnauthorized) return;
+    _handlingUnauthorized = true;
+    await AuthService.clearLocalSession();
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+    _handlingUnauthorized = false;
+  };
+
   runApp(
     MultiProvider(
       providers: [
@@ -28,6 +47,7 @@ class DeckardApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'Deckard',
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       locale: localeProvider.locale,

@@ -4,68 +4,107 @@ import 'api_service.dart';
 
 class AuthService {
   static const _storage = FlutterSecureStorage();
-  static const _tokenKey = 'auth_token';
+  static const _accessKey = 'auth_token';
+  static const _refreshKey = 'refresh_token';
 
-  /// Log in with email + password.
-  /// Mock: accepts any non-empty credentials and stores a fake token.
-  /// TODO: replace body with real API call:
-  ///   final data = await ApiService().post('/auth/login', {'email': email, 'password': password});
-  ///   final token = data['access_token'] as String;
-  static Future<void> login(String email, String password) async {
-    await Future.delayed(const Duration(milliseconds: 800));
+  static final _api = ApiService();
 
-    if (email.trim().isEmpty || password.isEmpty) {
-      throw Exception('Email et mot de passe requis.');
-    }
+  /// Id de l'utilisateur connecté (rempli au login / restauration de session).
+  /// Sert notamment à savoir si l'on est l'hôte d'un match.
+  static String? currentUserId;
 
-    // Mock token — replace with data['access_token'] from real API
-    const mockToken = 'mock-token-abc123';
-    await _storage.write(key: _tokenKey, value: mockToken);
-    ApiService.token = mockToken;
+  /// Connexion email + mot de passe.
+  /// POST /auth/login → { access_token, refresh_token, token_type }
+  /// Retourne `true` si l'utilisateur doit passer par l'onboarding
+  /// (aucun favori enregistré).
+  static Future<bool> login(String email, String password) async {
+    final data = await _api.post('/auth/login', {
+      'email': email.trim(),
+      'password': password,
+    });
+    await _persistTokens(
+      data['access_token'] as String,
+      data['refresh_token'] as String,
+    );
+    return fetchNeedsOnboarding();
   }
 
-  /// Register with email + username + password.
-  /// Mock: accepts any valid inputs and stores a fake token.
-  /// TODO: replace body with real API call:
-  ///   final data = await ApiService().post('/auth/register', {'email': email, 'username': username, 'password': password});
-  ///   final token = data['access_token'] as String;
-  static Future<void> register(
+  /// Inscription email + username + mot de passe.
+  /// POST /auth/register → UserOut (PAS de token), donc on enchaîne un login
+  /// pour récupérer les tokens. Retourne `true` (nouvel utilisateur → onboarding).
+  static Future<bool> register(
       String email, String username, String password) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    if (email.trim().isEmpty || username.trim().isEmpty || password.isEmpty) {
-      throw Exception('Tous les champs sont requis.');
-    }
-
-    // Mock token — replace with data['access_token'] from real API
-    const mockToken = 'mock-token-abc123';
-    await _storage.write(key: _tokenKey, value: mockToken);
-    ApiService.token = mockToken;
+    await _api.post('/auth/register', {
+      'email': email.trim(),
+      'username': username.trim(),
+      'password': password,
+    });
+    // register ne renvoie pas de token → on se connecte immédiatement.
+    return login(email, password);
   }
 
-  /// Save onboarding movie picks (called after register).
-  /// Each selected film should be added to both the user's watched list
-  /// and their favorites list.
-  /// TODO: implement with two calls (or a dedicated onboarding endpoint):
-  ///   await ApiService().post('/users/me/watched/batch', {'tmdb_ids': tmdbIds});
-  ///   await ApiService().post('/users/me/favorites/batch', {'tmdb_ids': tmdbIds});
+  /// Indique si l'onboarding est à faire : vrai tant que l'utilisateur n'a
+  /// aucun favori. GET /users/me → { ..., needs_onboarding }.
+  static Future<bool> fetchNeedsOnboarding() async {
+    final me = await _api.get('/users/me');
+    if (me is Map) currentUserId = me['id'] as String?;
+    return (me is Map && me['needs_onboarding'] == true);
+  }
+
+  /// Validation de l'onboarding : les films cochés deviennent des favoris.
+  /// POST /users/me/favorites/batch { tmdb_ids: [...] }
   static Future<void> saveOnboardingMovies(List<int> tmdbIds) async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    if (tmdbIds.isEmpty) return;
+    await _api.post('/users/me/favorites/batch', {'tmdb_ids': tmdbIds});
   }
 
-  /// Clear the stored token and reset the API service.
+  /// Efface les tokens et réinitialise l'API.
   static Future<void> logout() async {
-    await _storage.delete(key: _tokenKey);
-    ApiService.token = null;
+    final refresh = await _storage.read(key: _refreshKey);
+    if (refresh != null) {
+      // best-effort : invalide le refresh token côté serveur
+      try {
+        await _api.post('/auth/logout', {'refresh_token': refresh});
+      } catch (_) {/* on déconnecte localement quoi qu'il arrive */}
+    }
+    await clearLocalSession();
   }
 
-  /// Called on app start. Returns true if a valid token was found.
+  /// Purge la session locale (tokens + en-tête API), sans appel serveur.
+  /// Utilisé au logout, sur token invalide au démarrage, et sur 401.
+  static Future<void> clearLocalSession() async {
+    await _storage.delete(key: _accessKey);
+    await _storage.delete(key: _refreshKey);
+    ApiService.token = null;
+    currentUserId = null;
+  }
+
+  /// Appelé au démarrage. Restaure le token ET le valide auprès du backend.
+  /// → token absent : false (login)
+  /// → token présent mais invalide/expiré (401) : purge + false (login)
+  /// → token valide : true (accès à l'app)
   static Future<bool> tryRestoreToken() async {
-    final token = await _storage.read(key: _tokenKey);
-    if (token != null) {
-      ApiService.token = token;
+    final token = await _storage.read(key: _accessKey);
+    if (token == null) return false;
+    ApiService.token = token;
+    try {
+      final me = await _api.get('/users/me'); // valide réellement le token
+      if (me is Map) currentUserId = me['id'] as String?;
       return true;
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        await clearLocalSession();
+      }
+      return false;
+    } catch (_) {
+      // Backend injoignable / erreur réseau : on n'entre pas dans l'app.
+      return false;
     }
-    return false;
+  }
+
+  static Future<void> _persistTokens(String access, String refresh) async {
+    await _storage.write(key: _accessKey, value: access);
+    await _storage.write(key: _refreshKey, value: refresh);
+    ApiService.token = access;
   }
 }

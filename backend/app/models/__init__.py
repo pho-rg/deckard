@@ -4,6 +4,12 @@ from app.models.featured_movie import FeaturedMovie
 from app.models.friendship import Friendship, FriendshipStatus
 from app.models.genre import Genre
 from app.models.genre_content import GenreContent
+from app.models.match import (
+    MatchMovie,
+    MatchParticipant,
+    MatchSession,
+    MatchStatus,
+)
 from app.models.movie import Movie, MovieStatus
 from app.models.movie_cast import MovieCast
 from app.models.movie_content import MovieContent
@@ -11,7 +17,6 @@ from app.models.movie_crew import MovieCrew
 from app.models.movie_genre import MovieGenre
 from app.models.movie_vector import MovieVector
 from app.models.person import Person
-from app.models.person_content import PersonContent
 from app.models.rating import Rating
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
@@ -27,6 +32,10 @@ __all__ = [
     "FriendshipStatus",
     "Genre",
     "GenreContent",
+    "MatchMovie",
+    "MatchParticipant",
+    "MatchSession",
+    "MatchStatus",
     "Movie",
     "MovieCast",
     "MovieContent",
@@ -35,7 +44,6 @@ __all__ = [
     "MovieStatus",
     "MovieVector",
     "Person",
-    "PersonContent",
     "Rating",
     "RefreshToken",
     "User",

@@ -8,6 +8,7 @@
   "profile": "PROFILE",
   "discover": "DISCOVER",
   "trending": "TRENDING",
+  "nowPlaying": "NOW PLAYING",
   "forYou": "FOR YOU",
   "moviesCount": "{count} MOVIES",
   "@moviesCount": {
@@ -108,6 +109,8 @@
   "friendsWhoJoined": "FRIENDS WHO JOINED",
   "orUseCode": "OR USE CODE",
   "goButton": "GO",
+  "waitingForHost": "Waiting for the host to start…",
+  "waitingForOthers": "Waiting for the others to finish…",
   "codeCopied": "Code copied!",
   "makeYourSelection": "Make your selection",
   "declineMovie": "Decline",

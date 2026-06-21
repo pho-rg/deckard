@@ -59,46 +59,10 @@ class TMDBClient:
         self.close()
 
     # ----- endpoints -----
-
-    def get_movie(self, tmdb_id: int, *, language: str = "fr-FR") -> dict[str, Any]:
-        # full movie detail
-        return self._get(f"/movie/{tmdb_id}", params={"language": language})
-
-    def get_movie_credits(
-        self, tmdb_id: int, *, language: str = "fr-FR"
-    ) -> dict[str, Any]:
-        # movie credits (cast & crew)
-        return self._get(f"/movie/{tmdb_id}/credits", params={"language": language})
-
-    def get_movie_videos(
-        self, tmdb_id: int, *, language: str = "fr-FR"
-    ) -> dict[str, Any]:
-        # trailers / clips. include_video_language widens the net (FR trailers
-        # are often missing on TMDB) so we still get an English fallback key.
-        iso2 = language.split("-")[0].lower()
-        return self._get(
-            f"/movie/{tmdb_id}/videos",
-            params={"language": language, "include_video_language": f"{iso2},en"},
-        )
-
-    def search_movies(
-        self,
-        query: str,
-        *,
-        page: int = 1,
-        language: str = "fr-FR",
-        include_adult: bool = False,
-    ) -> dict[str, Any]:
-        # search result
-        return self._get(
-            "/search/movie",
-            params={
-                "query": query,
-                "page": page,
-                "language": language,
-                "include_adult": str(include_adult).lower(),
-            },
-        )
+    #
+    # The API only hits TMDB for the trending / now-playing carousels. Movie
+    # detail, search and user actions are served from our imported catalogue.
+    # Catalogue ingestion lives in the standalone db_load/ scripts.
 
     def trending(self, *, language: str = "fr-FR") -> dict[str, Any]:
         # popular movies
@@ -120,6 +84,10 @@ class TMDBClient:
     def list_genres(self, *, language: str = "fr-FR") -> dict[str, Any]:
         # known movie genders
         return self._get("/genre/movie/list", params={"language": language})
+
+    def movie(self, tmdb_id: int, *, language: str = "fr-FR") -> dict[str, Any]:
+        # single movie details (used as a fallback for vote_average)
+        return self._get(f"/movie/{tmdb_id}", params={"language": language})
 
     # ----- internal -----
 

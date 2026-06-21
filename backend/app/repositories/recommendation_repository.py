@@ -26,6 +26,33 @@ class RecommendationRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def random_unseen(self, user_id: uuid.UUID, *, limit: int = 20) -> list[Movie]:
+        """V1 of personal recommendations: random movies the user has not yet
+        interacted with. To be replaced by an AI model later."""
+        my_seen = union_all(
+            select(Favorite.movie_id.label("movie_id")).where(
+                Favorite.user_id == user_id
+            ),
+            select(Rating.movie_id.label("movie_id")).where(
+                Rating.user_id == user_id
+            ),
+            select(WatchedItem.movie_id.label("movie_id")).where(
+                WatchedItem.user_id == user_id
+            ),
+            select(WatchlistItem.movie_id.label("movie_id")).where(
+                WatchlistItem.user_id == user_id
+            ),
+        ).subquery()
+
+        stmt = (
+            select(Movie)
+            .where(Movie.tmdb_id.notin_(select(my_seen.c.movie_id)))
+            .order_by(func.random())
+            .limit(limit)
+            .options(selectinload(Movie.contents))
+        )
+        return list(self.db.scalars(stmt))
+
     def from_friends(self, user_id: uuid.UUID, *, limit: int = 10) -> list[Movie]:
         friend_ids = (
             select(Friendship.addressee_id)

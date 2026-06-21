@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.schemas.friend import UserPublicOut
 from app.schemas.movie import MovieCard
 
 
@@ -20,6 +21,12 @@ class RatingIn(BaseModel):
     review: str | None = Field(default=None, max_length=5000)
 
 
+class FavoriteBatchIn(BaseModel):
+    """Onboarding payload: the movies the user picked become favorites."""
+
+    tmdb_ids: list[int] = Field(min_length=1, max_length=50)
+
+
 class RatingWithMovieOut(BaseModel):
     """A user's rating with the rated movie embedded (built by the presenter)."""
 
@@ -28,3 +35,26 @@ class RatingWithMovieOut(BaseModel):
     review: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class MovieReviewOut(BaseModel):
+    """A public review on a movie: its author + stars + text."""
+
+    user: UserPublicOut
+    stars: float
+    review: str
+    created_at: datetime
+
+
+class MovieRatingsOut(BaseModel):
+    """Aggregate ratings for a movie + the public reviews."""
+
+    average: float | None = Field(
+        default=None, description="Mean rating in 0-5 stars, or null if none"
+    )
+    count: int = Field(default=0, description="Number of ratings")
+    distribution: list[int] = Field(
+        default_factory=lambda: [0] * 10,
+        description="Counts over the 10 half-star buckets 0.5..5.0",
+    )
+    reviews: list[MovieReviewOut] = []

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import ClassVar
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
@@ -29,6 +29,12 @@ class _UserMovieFlagRepository:
             select(self.model.user_id)
             .where(self.model.user_id == user_id, self.model.movie_id == movie_id)
             .limit(1)
+        ) is not None
+
+    def has_any(self, user_id: uuid.UUID) -> bool:
+        # True if the user has at least one entry (used for onboarding detection)
+        return self.db.scalar(
+            select(self.model.movie_id).where(self.model.user_id == user_id).limit(1)
         ) is not None
 
     def add(self, user_id: uuid.UUID, movie_id: int) -> None:
@@ -74,3 +80,22 @@ class WatchlistRepository(_UserMovieFlagRepository):
 class WatchedRepository(_UserMovieFlagRepository):
     model = WatchedItem
     timestamp_col_name = "watched_at"
+
+    def list_recent_for_users(
+        self, user_ids: list[uuid.UUID], *, limit: int = 12
+    ) -> list[Movie]:
+        # Distinct movies watched by any of the given users, most recently
+        # watched first. Aggregates across several friends (max watched_at).
+        if not user_ids:
+            return []
+        latest = func.max(WatchedItem.watched_at)
+        rows = self.db.execute(
+            select(Movie)
+            .join(WatchedItem, WatchedItem.movie_id == Movie.tmdb_id)
+            .where(WatchedItem.user_id.in_(user_ids))
+            .group_by(Movie.tmdb_id)
+            .order_by(latest.desc())
+            .limit(limit)
+            .options(selectinload(Movie.contents))
+        ).all()
+        return [r[0] for r in rows]

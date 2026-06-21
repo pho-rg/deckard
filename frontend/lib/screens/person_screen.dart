@@ -5,6 +5,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/movie.dart';
 import '../services/movie_service.dart';
 import '../theme/app_theme.dart';
+import 'movie_detail_screen.dart';
 
 class PersonScreen extends StatefulWidget {
   final int personId;
@@ -40,14 +41,9 @@ class _PersonScreenState extends State<PersonScreen> {
     _filmographyFuture = _loadFilmography();
   }
 
-  /// Cross-reference all mock movies to find ones featuring this person.
-  Future<List<Movie>> _loadFilmography() async {
-    final all = await MovieService.getMockMovies();
-    return all.where((m) {
-      final inCast = m.cast?.any((c) => c.id == widget.personId) ?? false;
-      final inCrew = m.crew?.any((c) => c.id == widget.personId) ?? false;
-      return inCast || inCrew;
-    }).toList();
+  /// Filmography from the backend (movies featuring this person, DB-backed).
+  Future<List<Movie>> _loadFilmography() {
+    return MovieService.getFilmography(widget.personId);
   }
 
   @override
@@ -293,7 +289,14 @@ class _FilmTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MovieDetailScreen(movie: movie),
+        ),
+      ),
+      child: ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: Stack(
         fit: StackFit.expand,
@@ -334,6 +337,7 @@ class _FilmTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

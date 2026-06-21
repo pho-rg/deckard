@@ -24,12 +24,11 @@
               }
             },
             "url": {
-              "raw": "http://localhost:8000/api/v1/auth/register",
-              "protocol": "http",
+              "raw": "{{baseUrl}}:{{port}}/api/v1/auth/register",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
+              "port": "{{port}}",
               "path": [
                 "api",
                 "v1",
@@ -56,12 +55,10 @@
               }
             },
             "url": {
-              "raw": "http://localhost:8000/api/v1/auth/login",
-              "protocol": "http",
+              "raw": "{{baseUrl}}/api/v1/auth/login",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
               "path": [
                 "api",
                 "v1",
@@ -179,12 +176,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/movies/trending",
-              "protocol": "http",
+              "raw": "{{baseUrl}}/api/v1/movies/trending",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
               "path": [
                 "api",
                 "v1",
@@ -225,22 +220,71 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/movies/:id",
-              "protocol": "http",
+              "raw": "{{baseUrl}}:{{port}}/api/v1/movies/:id",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
+              "port": "{{port}}",
               "path": [
                 "api",
                 "v1",
                 "movies",
                 ":id"
               ],
+              "query": [
+                {
+                  "key": null,
+                  "value": "",
+                  "type": "text",
+                  "uuid": "49760d5d-2b07-41dd-be3f-f5ddc4bc05c4",
+                  "disabled": true
+                }
+              ],
               "variable": [
                 {
                   "key": "id",
-                  "value": "6977"
+                  "value": "12",
+                  "uuid": "d95b3f77-81ad-4732-9ed7-311ac581db47"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "movie list",
+          "id": "1e23e239-b487-453a-b240-fa60332fd14a",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"tmdb_ids\": [\r\n    83533,\r\n  2,\r\n  3,\r\n  5,\r\n  6,\r\n  8,\r\n  11,\r\n  12,\r\n  13,\r\n  14,\r\n  15,\r\n  16,\r\n  17,\r\n  18,\r\n  19,\r\n  20,\r\n  21,\r\n  22,\r\n  24,\r\n  25,\r\n  26\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{port}}/api/v1/movies/by-ids",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "port": "{{port}}",
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "by-ids"
+              ],
+              "query": [
+                {
+                  "key": null,
+                  "value": "",
+                  "type": "text",
+                  "uuid": "49760d5d-2b07-41dd-be3f-f5ddc4bc05c4",
+                  "disabled": true
                 }
               ]
             }
@@ -300,7 +344,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "10547"
+                  "value": "83533"
                 }
               ]
             }
@@ -344,12 +388,11 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/movies/:id/watchlist",
-              "protocol": "http",
+              "raw": "{{baseUrl}}:{{port}}/api/v1/movies/:id/watchlist",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
+              "port": "{{port}}",
               "path": [
                 "api",
                 "v1",
@@ -360,7 +403,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": "550"
+                  "value": "12"
                 }
               ]
             }
@@ -586,7 +629,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"language\": \"fr-FR\",\r\n  \"region\": \"FR\"\r\n}",
+              "raw": "{\r\n  \"language\": \"en-US\",\r\n  \"region\": \"US\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -617,12 +660,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/users/me/favorites",
-              "protocol": "http",
+              "raw": "{{baseUrl}}:{{port}}/api/v1/users/me/favorites",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
+              "port": "{{port}}",
               "path": [
                 "api",
                 "v1",
@@ -641,12 +683,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8000/api/v1/users/me/watchlist",
-              "protocol": "http",
+              "raw": "{{baseUrl}}:{{port}}/api/v1/users/me/watchlist",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8000",
+              "port": "{{port}}",
               "path": [
                 "api",
                 "v1",
@@ -1076,6 +1117,25 @@
         }
       ],
       "id": "22ada90c-d44c-41bf-9e37-93d3d2af8dbe"
+    },
+    {
+      "name": "health",
+      "id": "fddc1ff2-f4f1-4b06-87e1-2a2063f1a9ac",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}:{{port}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "port": "{{port}}",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "auth": {
@@ -1083,7 +1143,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzOGY1ODkwOC03NzQ4LTQyNWItYTZmYS02MjM3MjRmOTZiODIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzgxNTEzMDI4LCJleHAiOjE3ODE1MTM5Mjh9.NUxLDWRD1VVjoMqBXVLAeX6jRJa1ofRTWrK5qaqCx9U",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxZjNkMzYwMC04ODY2LTQwYjgtOGE3NS1jYTFhODJlODgzMjkiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzgxODE3ODA5LCJleHAiOjE3ODE4MTg3MDl9.ty8ale0s18hP-ysWpZI7xiahTn6DDTiEpekDEl6XSBY",
         "type": "string"
       }
     ]

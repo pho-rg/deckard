@@ -146,6 +146,12 @@ abstract class AppLocalizations {
   /// **'TRENDING'**
   String get trending;
 
+  /// No description provided for @nowPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'NOW PLAYING'**
+  String get nowPlaying;
+
   /// No description provided for @forYou.
   ///
   /// In en, this message translates to:
@@ -661,6 +667,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'GO'**
   String get goButton;
+
+  /// No description provided for @waitingForHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the host to start…'**
+  String get waitingForHost;
+
+  /// No description provided for @waitingForOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the others to finish…'**
+  String get waitingForOthers;
 
   /// No description provided for @codeCopied.
   ///

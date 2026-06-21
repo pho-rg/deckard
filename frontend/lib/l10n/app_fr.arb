@@ -8,6 +8,7 @@
   "profile": "PROFIL",
   "discover": "À DÉCOUVRIR",
   "trending": "TENDANCES",
+  "nowPlaying": "EN SALLE",
   "forYou": "POUR VOUS",
   "moviesCount": "{count} FILMS",
   "@moviesCount": {
@@ -108,6 +109,8 @@
   "friendsWhoJoined": "AMIS QUI ONT REJOINT",
   "orUseCode": "OU UTILISEZ LE CODE",
   "goButton": "C'EST PARTI",
+  "waitingForHost": "En attente du lancement par l'hôte…",
+  "waitingForOthers": "En attente des autres participants…",
   "codeCopied": "Code copié !",
   "makeYourSelection": "Faites votre sélection",
   "declineMovie": "Passer",

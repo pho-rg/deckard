@@ -9,7 +9,9 @@ from app.schemas.friend import (
     FriendRequestsListing,
     UserPublicOut,
 )
+from app.schemas.movie import MovieCard
 from app.services.friendship_service import FriendshipService
+from app.services.user_movie_service import UserMovieService
 
 router = APIRouter(prefix="/friends", tags=["friends"])
 
@@ -17,6 +19,12 @@ router = APIRouter(prefix="/friends", tags=["friends"])
 @router.get("", response_model=list[UserPublicOut])
 def list_friends(db: DbSession, current_user: CurrentUser):
     return FriendshipService(db).list_friends(current_user)
+
+
+@router.get("/popular", response_model=list[MovieCard])
+def popular_with_friends(db: DbSession, current_user: CurrentUser):
+    # Movies recently watched across the user's friends.
+    return UserMovieService(db).popular_among_friends(current_user)
 
 
 @router.post(

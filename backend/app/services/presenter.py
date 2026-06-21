@@ -13,10 +13,17 @@ from app.schemas.movie import (
     GenreOut,
     MovieCard,
     MovieDetailOut,
+    MovieSummary,
+    PersonCard,
     PersonOut,
 )
 from app.schemas.movie import _image_url
-from app.schemas.user_movie import RatingWithMovieOut
+from app.schemas.friend import UserPublicOut
+from app.schemas.user_movie import (
+    MovieRatingsOut,
+    MovieReviewOut,
+    RatingWithMovieOut,
+)
 from app.services.localization import pick_content
 
 
@@ -28,10 +35,19 @@ def _movie_title(movie: Movie, lang_iso: str) -> tuple[str, str | None, str | No
 
 
 def _person_out(person, lang_iso: str) -> PersonOut:
-    content = pick_content(person.contents, lang_iso)
     return PersonOut(
         tmdb_id=person.tmdb_id,
-        name=content.name if content else "",
+        name=person.name or "",
+        profile_url=_image_url(person.profile_path, "w185"),
+    )
+
+
+def person_card(person) -> PersonCard:
+    # Person names are language-agnostic in our catalogue (stored on Person).
+    return PersonCard(
+        tmdb_id=person.tmdb_id,
+        name=person.name or "",
+        known_for_department=person.known_for_department,
         profile_url=_image_url(person.profile_path, "w185"),
     )
 
@@ -47,6 +63,22 @@ def movie_card(movie: Movie, lang_iso: str) -> MovieCard:
         vote_average=movie.vote_average,
         poster_url=_image_url(movie.poster_path, "w500"),
         backdrop_url=_image_url(movie.backdrop_path, "w1280"),
+    )
+
+
+def movie_summary(movie: Movie, lang_iso: str) -> MovieSummary:
+    """DB-sourced summary in the same shape as a TMDB list entry."""
+    title, overview, _ = _movie_title(movie, lang_iso)
+    return MovieSummary(
+        tmdb_id=movie.tmdb_id,
+        title=title,
+        original_title=movie.original_title,
+        overview=overview,
+        release_date=movie.release_date,
+        vote_average=movie.vote_average,
+        genre_ids=[g.tmdb_id for g in movie.genres],
+        poster_path=movie.poster_path,
+        backdrop_path=movie.backdrop_path,
     )
 
 
@@ -105,4 +137,27 @@ def rating_with_movie(rating: Rating, lang_iso: str) -> RatingWithMovieOut:
         review=rating.review,
         created_at=rating.created_at,
         updated_at=rating.updated_at,
+    )
+
+
+def movie_review(rating: Rating) -> MovieReviewOut:
+    return MovieReviewOut(
+        user=UserPublicOut(id=rating.user.id, username=rating.user.username),
+        stars=rating.rating / 2,
+        review=rating.review or "",
+        created_at=rating.created_at,
+    )
+
+
+def movie_ratings(
+    average: float | None,
+    count: int,
+    distribution: list[int],
+    reviews: list[Rating],
+) -> MovieRatingsOut:
+    return MovieRatingsOut(
+        average=round(average, 1) if average is not None else None,
+        count=count,
+        distribution=distribution,
+        reviews=[movie_review(r) for r in reviews],
     )

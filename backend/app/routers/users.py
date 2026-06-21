@@ -1,33 +1,83 @@
 import uuid
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.deps import CurrentUser, DbSession
 from app.repositories.user_repository import UserRepository
 from app.schemas.friend import UserPublicOut
 from app.schemas.movie import MovieCard
-from app.schemas.user import UserOut, UserUpdate
-from app.schemas.user_movie import RatingWithMovieOut
+from app.schemas.user import (
+    PasswordChange,
+    UserOut,
+    UserProfileOut,
+    UserUpdate,
+)
+from app.security import hash_password, verify_password
+from app.schemas.user_movie import FavoriteBatchIn, RatingWithMovieOut
 from app.services.friendship_service import FriendshipService
 from app.services.user_movie_service import UserMovieService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+def _user_out(db, user) -> UserOut:
+    out = UserOut.model_validate(user)
+    out.needs_onboarding = UserMovieService(db).needs_onboarding(user)
+    return out
+
+
 @router.get("/me", response_model=UserOut)
-def get_me(current_user: CurrentUser):
-    return current_user
+def get_me(db: DbSession, current_user: CurrentUser):
+    return _user_out(db, current_user)
 
 
 @router.put("/me", response_model=UserOut)
 def update_me(payload: UserUpdate, db: DbSession, current_user: CurrentUser):
+    repo = UserRepository(db)
+
+    if payload.username is not None and payload.username != current_user.username:
+        existing = repo.get_by_username(payload.username)
+        if existing is not None and existing.id != current_user.id:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Username already taken"
+            )
+        current_user.username = payload.username
+
+    if payload.email is not None and payload.email != current_user.email:
+        existing = repo.get_by_email(payload.email)
+        if existing is not None and existing.id != current_user.id:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Email already in use"
+            )
+        current_user.email = payload.email
+
     if payload.language is not None:
         current_user.language = payload.language
     if payload.region is not None:
         current_user.region = payload.region
     db.commit()
     db.refresh(current_user)
-    return current_user
+    return _user_out(db, current_user)
+
+
+@router.put("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: PasswordChange, db: DbSession, current_user: CurrentUser
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Current password is incorrect"
+        )
+    current_user.password_hash = hash_password(payload.new_password)
+    db.commit()
+
+
+@router.post("/me/favorites/batch", status_code=status.HTTP_204_NO_CONTENT)
+def add_favorites_batch(
+    payload: FavoriteBatchIn, db: DbSession, current_user: CurrentUser
+):
+    # Onboarding validation: the selected movies are added to favorites.
+    UserMovieService(db).add_favorites_batch(current_user, payload.tmdb_ids)
 
 
 @router.get("/me/favorites", response_model=list[MovieCard])
@@ -63,6 +113,15 @@ def search_users(
 
 
 # ---- Other users' collections (gated by friendship, localized for the viewer) ----
+
+
+@router.get("/{user_id}", response_model=UserProfileOut)
+def get_user_profile(user_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
+    FriendshipService(db).assert_can_view_profile(current_user, user_id)
+    user = UserRepository(db).get_by_id(user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    return user
 
 
 @router.get("/{user_id}/favorites", response_model=list[MovieCard])

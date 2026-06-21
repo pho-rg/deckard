@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.deps import CurrentUser, DbSession
-from app.integrations.tmdb import TMDBNotFound, TMDBRateLimited, TMDBUnavailable
-from app.schemas.movie import MovieDetailOut, PagedMovies
-from app.schemas.user_movie import RatingIn, UserStateOut
-from app.services.movie_service import MovieService
+from app.integrations.tmdb import TMDBRateLimited, TMDBUnavailable
+from app.schemas.movie import MovieCard, MovieDetailOut, MovieIdsIn, PagedMovies
+from app.schemas.user_movie import MovieRatingsOut, RatingIn, UserStateOut
+from app.services.movie_service import MovieNotFound, MovieService
 from app.services.user_movie_service import UserMovieService
 
 router = APIRouter(prefix="/movies", tags=["movies"])
@@ -20,10 +20,8 @@ def search_movies(
     q: str = Query(min_length=1, max_length=200, description="Search query"),
     page: int = Query(default=1, ge=1, le=500),
 ):
-    try:
-        return MovieService(db).search_movies(q, page=page, language=current_user.language)
-    except (TMDBRateLimited, TMDBUnavailable) as exc:
-        _raise_upstream(exc)
+    # DB-backed: searches our imported catalogue, no TMDB call.
+    return MovieService(db).search_movies(q, page=page, language=current_user.language)
 
 
 @router.get("/trending", response_model=PagedMovies)
@@ -48,6 +46,16 @@ def list_now_playing(
         _raise_upstream(exc)
 
 
+@router.post("/by-ids", response_model=list[MovieCard])
+def get_movies_by_ids(
+    payload: MovieIdsIn, db: DbSession, current_user: CurrentUser
+):
+    # DB-backed batch resolve for the onboarding grid (fixed tmdb_id list).
+    return MovieService(db).cards_by_ids(
+        payload.tmdb_ids, language=current_user.language
+    )
+
+
 @router.get("/featured", response_model=MovieDetailOut)
 def get_featured(db: DbSession, current_user: CurrentUser):
     movie = MovieService(db).get_featured(language=current_user.language)
@@ -65,17 +73,34 @@ def get_featured(db: DbSession, current_user: CurrentUser):
 def get_movie(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     try:
         return MovieService(db).get_movie_details(tmdb_id, language=current_user.language)
-    except TMDBNotFound:
+    except MovieNotFound:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found"
         ) from None
-    except (TMDBRateLimited, TMDBUnavailable) as exc:
-        _raise_upstream(exc)
 
 
 @router.get("/{tmdb_id}/user-state", response_model=UserStateOut)
 def get_user_state(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     return UserMovieService(db).get_user_state(current_user, tmdb_id)
+
+
+@router.get("/{tmdb_id}/reviews", response_model=MovieRatingsOut)
+def get_movie_reviews(tmdb_id: int, db: DbSession, current_user: CurrentUser):
+    # Public: aggregate ratings + text reviews from all users.
+    return MovieService(db).get_movie_ratings(tmdb_id)
+
+
+@router.get("/{tmdb_id}/similar", response_model=list[MovieCard])
+def get_similar_movies(
+    tmdb_id: int,
+    db: DbSession,
+    current_user: CurrentUser,
+    limit: int = Query(default=10, ge=1, le=30),
+):
+    # V1: random movies from our catalogue (AI model to come later).
+    return MovieService(db).list_similar(
+        tmdb_id, limit=limit, language=current_user.language
+    )
 
 
 # ---- Favorites ----
@@ -85,10 +110,8 @@ def get_user_state(tmdb_id: int, db: DbSession, current_user: CurrentUser):
 def add_favorite(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     try:
         UserMovieService(db).add_favorite(current_user, tmdb_id)
-    except TMDBNotFound:
+    except MovieNotFound:
         raise HTTPException(404, detail="Movie not found") from None
-    except (TMDBRateLimited, TMDBUnavailable) as exc:
-        _raise_upstream(exc)
 
 
 @router.delete("/{tmdb_id}/favorite", status_code=status.HTTP_204_NO_CONTENT)
@@ -103,10 +126,8 @@ def remove_favorite(tmdb_id: int, db: DbSession, current_user: CurrentUser):
 def add_to_watchlist(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     try:
         UserMovieService(db).add_to_watchlist(current_user, tmdb_id)
-    except TMDBNotFound:
+    except MovieNotFound:
         raise HTTPException(404, detail="Movie not found") from None
-    except (TMDBRateLimited, TMDBUnavailable) as exc:
-        _raise_upstream(exc)
 
 
 @router.delete("/{tmdb_id}/watchlist", status_code=status.HTTP_204_NO_CONTENT)
@@ -121,10 +142,8 @@ def remove_from_watchlist(tmdb_id: int, db: DbSession, current_user: CurrentUser
 def mark_watched(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     try:
         UserMovieService(db).mark_watched(current_user, tmdb_id)
-    except TMDBNotFound:
+    except MovieNotFound:
         raise HTTPException(404, detail="Movie not found") from None
-    except (TMDBRateLimited, TMDBUnavailable) as exc:
-        _raise_upstream(exc)
 
 
 @router.delete("/{tmdb_id}/watched", status_code=status.HTTP_204_NO_CONTENT)
@@ -143,10 +162,8 @@ def set_rating(
         UserMovieService(db).set_rating(
             current_user, tmdb_id, payload.stars, payload.review
         )
-    except TMDBNotFound:
+    except MovieNotFound:
         raise HTTPException(404, detail="Movie not found") from None
-    except (TMDBRateLimited, TMDBUnavailable) as exc:
-        _raise_upstream(exc)
 
 
 @router.delete("/{tmdb_id}/rating", status_code=status.HTTP_204_NO_CONTENT)

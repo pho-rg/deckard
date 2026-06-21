@@ -7,7 +7,7 @@ import '../widgets/movie_card.dart';
 import 'movie_detail_screen.dart';
 import 'recommendations_screen.dart';
 
-enum SortOption { releaseDate, popularity }
+enum SortOption { releaseDate, rating }
 
 enum ViewMode { grid4, grid3, grid2, oneByOne }
 
@@ -31,7 +31,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
   }
 
   void _loadMovies() {
-    _moviesFuture = MovieService.getMockMovies().then((movies) {
+    _moviesFuture = MovieService.getWatchlist().then((movies) {
       _movies = movies;
       _sortMovies();
       return _movies;
@@ -47,7 +47,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
           return dateB.compareTo(dateA); // Newest first
         });
       } else {
-        _movies.sort((a, b) => (b.popularity ?? 0).compareTo(a.popularity ?? 0));
+        _movies.sort((a, b) => (b.voteAverage ?? 0).compareTo(a.voteAverage ?? 0));
       }
     });
   }
@@ -93,8 +93,8 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                       child: Text(l10n.releaseDate),
                     ),
                     PopupMenuItem<SortOption>(
-                      value: SortOption.popularity,
-                      child: Text(l10n.popularity),
+                      value: SortOption.rating,
+                      child: Text(l10n.ratings),
                     ),
                   ],
                 ),

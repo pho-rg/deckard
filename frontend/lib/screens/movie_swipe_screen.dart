@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -10,13 +12,11 @@ import 'match_result_screen.dart';
 
 class MovieSwipeScreen extends StatefulWidget {
   final MatchSession session;
-  final List<ProfileMovieCard> movies;
   final FriendService service;
 
   const MovieSwipeScreen({
     super.key,
     required this.session,
-    required this.movies,
     required this.service,
   });
 
@@ -29,6 +29,9 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
   int _currentIndex = 0;
   final Map<int, bool> _choices = {}; // tmdbId → selected
   bool _submitting = false;
+  Timer? _pollTimer;
+
+  List<ProfileMovieCard> get _movies => widget.session.movies;
 
   late AnimationController _animCtrl;
   late Animation<Offset> _slideAnim;
@@ -51,19 +54,20 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
   @override
   void dispose() {
     _animCtrl.dispose();
+    _pollTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _choose(bool selected) async {
-    if (_currentIndex >= widget.movies.length) return;
-    final movie = widget.movies[_currentIndex];
+    if (_currentIndex >= _movies.length) return;
+    final movie = _movies[_currentIndex];
     _choices[movie.tmdbId] = selected;
 
     // Animate out
     await _animCtrl.forward();
     _animCtrl.reset();
 
-    if (_currentIndex + 1 >= widget.movies.length) {
+    if (_currentIndex + 1 >= _movies.length) {
       // All movies voted → submit
       await _submit();
     } else {
@@ -73,32 +77,75 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
 
   Future<void> _submit() async {
     setState(() => _submitting = true);
-    final results = await widget.service.submitChoices(
-      widget.movies,
-      _choices,
-    );
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MatchResultScreen(
-            session: widget.session,
-            unanimousMovies: results,
-            service: widget.service,
-          ),
-        ),
+    // On envoie les "non" (les films refusés) ; le back les retire de la liste.
+    final rejected = _movies
+        .where((m) => _choices[m.tmdbId] == false)
+        .map((m) => m.tmdbId)
+        .toList();
+    try {
+      var session = await widget.service.submitChoices(
+        widget.session.id,
+        rejected,
       );
+      // Attendre que tous les participants aient soumis (statut "terminé").
+      session = await _awaitFinished(session);
+      if (mounted) _goToResult(session);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
     }
+  }
+
+  Future<MatchSession> _awaitFinished(MatchSession current) async {
+    if (current.status == MatchStatus.finished) return current;
+    final completer = Completer<MatchSession>();
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (t) async {
+      try {
+        final latest = await widget.service.getMatch(widget.session.id);
+        if (latest.status == MatchStatus.finished) {
+          t.cancel();
+          if (!completer.isCompleted) completer.complete(latest);
+        }
+      } catch (_) {
+        // tick suivant
+      }
+    });
+    return completer.future;
+  }
+
+  void _goToResult(MatchSession session) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            MatchResultScreen(session: session, service: widget.service),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final total = widget.movies.length;
+    final total = _movies.length;
 
     if (_submitting) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppTheme.primaryPurple),
+              const SizedBox(height: 20),
+              Text(
+                l10n.waitingForOthers,
+                style: const TextStyle(color: AppTheme.textDim),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -190,7 +237,7 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
   }
 
   Widget _buildCardStack(AppLocalizations l10n) {
-    final movies = widget.movies;
+    final movies = _movies;
     final current = movies[_currentIndex];
 
     // Show up to 3 cards stacked (next ones peeking behind)

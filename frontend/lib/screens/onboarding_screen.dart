@@ -1,11 +1,8 @@
-import 'dart:math';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../models/profile_models.dart';
-import '../models/movie.dart';
 import '../services/auth_service.dart';
 import '../services/movie_service.dart';
 import '../theme/app_theme.dart';
@@ -32,18 +29,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _moviesFuture = _loadMovies();
   }
 
-  Future<List<ProfileMovieCard>> _loadMovies() async {
-    final all = await MovieService.getMockMovies();
-    final rng = Random(7);
-    final shuffled = List.of(all)..shuffle(rng);
-    return shuffled.take(24).map((m) => ProfileMovieCard(
-          tmdbId: m.id,
-          title: m.title,
-          posterUrl: m.posterUrl,
-          backdropUrl: m.backdropUrl,
-          voteAverage: m.voteAverage,
-          releaseDate: m.releaseDate,
-        )).toList();
+  Future<List<ProfileMovieCard>> _loadMovies() {
+    // Fixed IMDb id list (bundled JSON) resolved to cards by the backend.
+    return MovieService.getOnboardingMovies();
   }
 
   void _toggle(int tmdbId) {
@@ -59,13 +47,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _continue() async {
     if (_selected.length < _minPick) return;
     setState(() => _submitting = true);
-    await AuthService.saveOnboardingMovies(_selected.toList());
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const MainNavigation()),
-        (_) => false,
-      );
+    try {
+      await AuthService.saveOnboardingMovies(_selected.toList());
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
+          (_) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
     }
   }
 

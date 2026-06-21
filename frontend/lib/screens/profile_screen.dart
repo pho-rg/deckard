@@ -83,24 +83,17 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
     } else {
       final uid = widget.userId!;
-      final stub = ProfileUser(
-        id: uid,
-        username: widget.initialUsername ?? uid,
-        email: '',
-        language: '',
-        region: '',
-        createdAt: DateTime.now(),
-      );
       final results = await Future.wait([
+        _service.getUser(uid),
         _service.getUserFavorites(uid),
         _service.getUserWatched(uid),
         _service.getUserRatings(uid),
       ]);
       return _ProfileData(
-        user: stub,
-        favorites: results[0] as List<ProfileMovieCard>,
-        watched: results[1] as List<ProfileMovieCard>,
-        ratings: results[2] as List<ProfileRating>,
+        user: results[0] as ProfileUser,
+        favorites: results[1] as List<ProfileMovieCard>,
+        watched: results[2] as List<ProfileMovieCard>,
+        ratings: results[3] as List<ProfileRating>,
       );
     }
   }
@@ -281,13 +274,16 @@ class _ProfileScreenState extends State<ProfileScreen>
         user: user,
         l10n: l10n,
         onSaved: ({username, email, language, currentPassword, newPassword}) async {
-          await _service.updateMe(
-            username: username,
-            email: email,
-            language: language,
-            currentPassword: currentPassword,
-            newPassword: newPassword,
-          );
+          if (username != null || email != null || language != null) {
+            await _service.updateMe(
+              username: username,
+              email: email,
+              language: language,
+            );
+          }
+          if (currentPassword != null && newPassword != null) {
+            await _service.changePassword(currentPassword, newPassword);
+          }
           _refresh();
         },
       ),
@@ -411,6 +407,25 @@ class _StatItem extends StatelessWidget {
   }
 }
 
+// Fetch the full movie detail from the backend, then open its screen.
+Future<void> _openDetail(BuildContext context, int tmdbId) async {
+  try {
+    final full = await MovieService.getMovieDetail(tmdbId);
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: full)),
+      );
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Film introuvable')),
+      );
+    }
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Movie grid (Favorites + Watched tabs)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -469,15 +484,7 @@ class _PosterTile extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: () async {
-        final full = await MovieService.getById(movie.tmdbId);
-        if (full != null && context.mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: full)),
-          );
-        }
-      },
+      onTap: () => _openDetail(context, movie.tmdbId),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4),
         child: image,
@@ -535,15 +542,7 @@ class _RatingTile extends StatelessWidget {
     final posterUrl = movie.posterUrl;
 
     return GestureDetector(
-      onTap: () async {
-        final full = await MovieService.getById(movie.tmdbId);
-        if (full != null && context.mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: full)),
-          );
-        }
-      },
+      onTap: () => _openDetail(context, movie.tmdbId),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
@@ -729,10 +728,10 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         newPassword: newPw,
       );
       if (mounted) Navigator.of(context).pop();
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la sauvegarde')),
+          SnackBar(content: Text('$e')),
         );
       }
     } finally {
@@ -842,6 +841,14 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               obscure: _obscureCurrent,
               onToggle: () =>
                   setState(() => _obscureCurrent = !_obscureCurrent),
+              validator: (v) {
+                // Requis dès qu'un nouveau mot de passe est saisi.
+                if (_newPasswordCtrl.text.isNotEmpty &&
+                    (v == null || v.isEmpty)) {
+                  return l10n.currentPasswordLabel;
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
             _PasswordField(

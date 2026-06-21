@@ -28,6 +28,16 @@ class ProfileUser {
         region: json['region'] as String,
         createdAt: DateTime.parse(json['created_at'] as String),
       );
+
+  /// Public projection of another user (UserProfileOut): no email/language/region.
+  factory ProfileUser.fromPublicJson(Map<String, dynamic> json) => ProfileUser(
+        id: json['id'] as String,
+        username: json['username'] as String,
+        email: '',
+        language: '',
+        region: '',
+        createdAt: DateTime.parse(json['created_at'] as String),
+      );
 }
 
 class ProfileMovieCard {
@@ -53,9 +63,16 @@ class ProfileMovieCard {
         title: json['title'] as String,
         posterUrl: json['poster_url'] as String?,
         backdropUrl: json['backdrop_url'] as String?,
-        voteAverage: (json['vote_average'] as num?)?.toDouble(),
+        // vote_average peut arriver en String (Decimal sérialisé) ou en num.
+        voteAverage: _toDouble(json['vote_average']),
         releaseDate: json['release_date'] as String?,
       );
+
+  static double? _toDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString());
+  }
 
   String get year => releaseDate?.split('-').first ?? '';
 }

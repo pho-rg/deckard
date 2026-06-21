@@ -33,6 +33,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trending => 'TRENDING';
 
   @override
+  String get nowPlaying => 'NOW PLAYING';
+
+  @override
   String get forYou => 'FOR YOU';
 
   @override
@@ -293,6 +296,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goButton => 'GO';
+
+  @override
+  String get waitingForHost => 'Waiting for the host to start…';
+
+  @override
+  String get waitingForOthers => 'Waiting for the others to finish…';
 
   @override
   String get codeCopied => 'Code copied!';

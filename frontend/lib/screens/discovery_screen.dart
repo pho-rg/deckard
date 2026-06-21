@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -26,25 +25,38 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 
   void _loadData() {
-    _discoveryData = MovieService.getMockMovies().then((movies) {
-      if (movies.isEmpty) return {};
+    _discoveryData = _fetchDiscovery();
+  }
 
-      final random = Random();
-      // Section 1: Featured (one large movie)
-      final featured = movies[random.nextInt(movies.length)];
+  Future<Map<String, dynamic>> _fetchDiscovery() async {
+    final results = await Future.wait([
+      MovieService.getTrending(),
+      MovieService.getNowPlaying(),
+      MovieService.getFeatured(),
+      MovieService.getRecommendations(),
+    ]);
 
-      // Section 2: Trending (horizontal list)
-      final trending = List<Movie>.from(movies)..shuffle(random);
-      
-      // Section 3: For You (horizontal list)
-      final forYou = List<Movie>.from(movies)..shuffle(random);
+    final trending = results[0] as List<Movie>;
+    final nowPlaying = results[1] as List<Movie>;
+    Movie? featured = results[2] as Movie?;
+    final forYou = results[3] as List<Movie>;
 
-      return {
-        'featured': featured,
-        'trending': trending.take(15).toList(),
-        'forYou': forYou.take(15).toList(),
-      };
-    });
+    // No configured featured movie → fall back to the first trending one.
+    featured ??= trending.isNotEmpty ? trending.first : null;
+
+    if (featured == null &&
+        trending.isEmpty &&
+        nowPlaying.isEmpty &&
+        forYou.isEmpty) {
+      return {};
+    }
+
+    return {
+      'featured': featured,
+      'trending': trending.take(15).toList(),
+      'nowPlaying': nowPlaying.take(15).toList(),
+      'forYou': forYou,
+    };
   }
 
   @override
@@ -74,40 +86,46 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             return Center(child: Text(l10n.noMoviesAvailable));
           }
 
-          final featured = snapshot.data!['featured'] as Movie;
+          final featured = snapshot.data!['featured'] as Movie?;
           final trending = snapshot.data!['trending'] as List<Movie>;
+          final nowPlaying = snapshot.data!['nowPlaying'] as List<Movie>;
           final forYou = snapshot.data!['forYou'] as List<Movie>;
 
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Section: Discovery (Featured)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-                  child: Text(
-                    l10n.discover,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                      color: Colors.white70,
+                if (featured != null) ...[
+                  // Section: Discovery (Featured)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+                    child: Text(
+                      l10n.discover,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        color: Colors.white70,
+                      ),
                     ),
                   ),
-                ),
-                
-                _buildFeaturedSection(featured, l10n),
-
-                const SizedBox(height: 30),
+                  _buildFeaturedSection(featured, l10n),
+                  const SizedBox(height: 30),
+                ],
 
                 // Section: Trending
                 _buildHorizontalSection(l10n.trending, trending),
 
                 const SizedBox(height: 30),
 
-                // Section: For You
-                _buildHorizontalSection(l10n.forYou, forYou),
-                
+                // Section: Now Playing
+                _buildHorizontalSection(l10n.nowPlaying, nowPlaying),
+
+                const SizedBox(height: 30),
+
+                // Section: For You (recommandations, en grille)
+                if (forYou.isNotEmpty) _buildGridSection(l10n.forYou, forYou),
+
                 const SizedBox(height: 20),
               ],
             ),
@@ -261,6 +279,53 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               );
             },
           ),
+        ),
+      ],
+    );
+  }
+
+  /// Section en grille (comme la page Watchlist) — posters cliquables, 3 colonnes.
+  Widget _buildGridSection(String title, List<Movie> movies) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: Colors.white70,
+            ),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 2 / 3,
+            crossAxisSpacing: 8.0,
+            mainAxisSpacing: 8.0,
+          ),
+          itemCount: movies.length,
+          itemBuilder: (context, index) {
+            return MovieCard(
+              movie: movies[index],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        MovieDetailScreen(movie: movies[index]),
+                  ),
+                );
+              },
+            );
+          },
         ),
       ],
     );
