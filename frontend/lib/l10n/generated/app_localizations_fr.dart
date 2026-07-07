@@ -136,10 +136,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get rate => 'Noter';
 
   @override
-  String get watchlistAdd => 'Ajouter à la watchlist';
+  String get watchlistAdd => 'Watchlist';
 
   @override
   String get removeWatchlist => 'Retirer de la watchlist';
+
+  @override
+  String get watchlistEmpty => 'Liste vide';
+
+  @override
+  String get goToDiscover => 'Aller à la découverte';
 
   @override
   String get you => 'VOUS';
@@ -227,7 +233,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get newPasswordLabel => 'Nouveau mot de passe';
 
   @override
-  String get confirmPasswordLabel => 'Confirmer le nouveau mot de passe';
+  String get confirmNewPasswordLabel => 'Confirmer le nouveau mot de passe';
+
+  @override
+  String get confirmPasswordLabel => 'CONFIRMER LE MOT DE PASSE';
 
   @override
   String get passwordMismatch => 'Les mots de passe ne correspondent pas';
@@ -331,7 +340,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noMatchFoundSubtitle =>
-      'Votre groupe n\'a pas réussi à se mettre d\'accord. Réessayer avec d\'autres choix.';
+      'Votre groupe n\'a pas réussi à se mettre d\'accord. Réessayez avec d\'autres choix.';
 
   @override
   String get restartMatch => 'Recommencer un match';
@@ -387,7 +396,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String onboardingCounter(int count, int max) {
-    return '$count / $max sélectionnés';
+    return '$count / $max sélectionné(s)';
   }
 
   @override

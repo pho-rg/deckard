@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/movie_card.dart';
 import 'movie_detail_screen.dart';
 import 'recommendations_screen.dart';
+import 'main_navigation.dart';
 
 enum SortOption { releaseDate, rating }
 
@@ -76,11 +77,11 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: _currentView == ViewMode.oneByOne
+      appBar: _currentView == ViewMode.oneByOne && _movies.isNotEmpty
           ? null
           : AppBar(
               title: Text(l10n.watchlist),
-              actions: [
+              actions: _movies.isEmpty ? null : [
                 PopupMenuButton<SortOption>(
                   icon: const Icon(Icons.sort),
                   onSelected: (SortOption result) {
@@ -108,11 +109,18 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
         future: _moviesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting && _movies.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (_movies.isEmpty) {
-            return Center(child: Text(l10n.noMoviesAvailable));
+          }
+
+          if (_movies.isEmpty) {
+            return Column(
+              children: [
+                _buildAIRecBanner(l10n),
+                Expanded(child: _buildEmptyState(l10n)),
+              ],
+            );
           }
 
           if (_currentView == ViewMode.oneByOne) {
@@ -128,14 +136,14 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
               // Movie count display
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8.0, 16.0, 8.0, 8.0),
+                  padding: const EdgeInsets.fromLTRB(8.0, 16.0, 16.0, 8.0),
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      l10n.moviesCount(_movies.length),
+                      l10n.moviesCount(_movies.length).toUpperCase(),
                       style: const TextStyle(
                         color: Colors.white54,
-                        fontSize: 12,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.1,
                       ),
@@ -152,12 +160,41 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
     );
   }
 
+  Widget _buildEmptyState(AppLocalizations l10n) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.history_toggle_off, size: 64, color: Colors.white10),
+          const SizedBox(height: 16),
+          Text(
+            l10n.watchlistEmpty,
+            style: const TextStyle(color: Colors.white38, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              MainNavigation.of(context)?.setTab(2);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white10,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(l10n.goToDiscover),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAIRecBanner(AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.all(8.0),
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1A23), // Surface color
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(color: Colors.white10),
       ),
@@ -211,13 +248,13 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
   IconData _getNextViewIcon() {
     switch (_currentView) {
       case ViewMode.grid4:
-        return Icons.view_module; // Icon representing Grid 3
+        return Icons.view_module;
       case ViewMode.grid3:
-        return Icons.dashboard; // Icon representing Grid 2
+        return Icons.dashboard;
       case ViewMode.grid2:
-        return Icons.view_carousel; // Icon representing OneByOne
+        return Icons.view_carousel;
       case ViewMode.oneByOne:
-        return Icons.grid_view; // Icon representing Grid 4
+        return Icons.grid_view;
     }
   }
 

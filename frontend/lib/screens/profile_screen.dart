@@ -866,7 +866,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             const SizedBox(height: 12),
             _PasswordField(
               controller: _confirmPasswordCtrl,
-              hint: l10n.confirmPasswordLabel,
+              hint: l10n.confirmNewPasswordLabel,
               obscure: _obscureConfirm,
               onToggle: () =>
                   setState(() => _obscureConfirm = !_obscureConfirm),

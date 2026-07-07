@@ -347,7 +347,7 @@ abstract class AppLocalizations {
   /// No description provided for @watchlistAdd.
   ///
   /// In en, this message translates to:
-  /// **'Add to Watchlist'**
+  /// **'Watchlist'**
   String get watchlistAdd;
 
   /// No description provided for @removeWatchlist.
@@ -355,6 +355,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove from Watchlist'**
   String get removeWatchlist;
+
+  /// No description provided for @watchlistEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Watchlist empty'**
+  String get watchlistEmpty;
+
+  /// No description provided for @goToDiscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Discover'**
+  String get goToDiscover;
 
   /// No description provided for @you.
   ///
@@ -524,10 +536,16 @@ abstract class AppLocalizations {
   /// **'New password'**
   String get newPasswordLabel;
 
-  /// No description provided for @confirmPasswordLabel.
+  /// No description provided for @confirmNewPasswordLabel.
   ///
   /// In en, this message translates to:
   /// **'Confirm new password'**
+  String get confirmNewPasswordLabel;
+
+  /// No description provided for @confirmPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM PASSWORD'**
   String get confirmPasswordLabel;
 
   /// No description provided for @passwordMismatch.
@@ -827,7 +845,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Pick 1 to 10 films to personalise your experience.'**
+  /// **'Pick 1 to 10 films to personalize your experience.'**
   String get onboardingSubtitle;
 
   /// No description provided for @onboardingContinue.

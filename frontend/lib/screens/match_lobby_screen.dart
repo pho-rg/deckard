@@ -86,9 +86,13 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
     Clipboard.setData(ClipboardData(text: _session.code));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppLocalizations.of(context)!.codeCopied),
+        content: Text(
+          AppLocalizations.of(context)!.codeCopied,
+          style: const TextStyle(color: AppTheme.textMain),
+        ),
         duration: const Duration(seconds: 2),
         backgroundColor: AppTheme.surface,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

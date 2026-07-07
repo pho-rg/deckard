@@ -136,10 +136,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rate => 'Rate';
 
   @override
-  String get watchlistAdd => 'Add to Watchlist';
+  String get watchlistAdd => 'Watchlist';
 
   @override
   String get removeWatchlist => 'Remove from Watchlist';
+
+  @override
+  String get watchlistEmpty => 'Watchlist empty';
+
+  @override
+  String get goToDiscover => 'Go to Discover';
 
   @override
   String get you => 'YOU';
@@ -226,7 +232,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newPasswordLabel => 'New password';
 
   @override
-  String get confirmPasswordLabel => 'Confirm new password';
+  String get confirmNewPasswordLabel => 'Confirm new password';
+
+  @override
+  String get confirmPasswordLabel => 'CONFIRM PASSWORD';
 
   @override
   String get passwordMismatch => 'Passwords don\'t match';
@@ -379,7 +388,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingSubtitle =>
-      'Pick 1 to 10 films to personalise your experience.';
+      'Pick 1 to 10 films to personalize your experience.';
 
   @override
   String get onboardingContinue => 'Continue';

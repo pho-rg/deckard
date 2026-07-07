@@ -10,6 +10,9 @@ import 'my_profile_screen.dart';
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
+  static _MainNavigationState? of(BuildContext context) =>
+      context.findAncestorStateOfType<_MainNavigationState>();
+
   @override
   State<MainNavigation> createState() => _MainNavigationState();
 }
@@ -17,6 +20,12 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   // Discover par défaut
   int _currentIndex = 2;
+
+  void setTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   // Liste des écrans dans l'ordre des onglets
   final List<Widget> _screens = const [
