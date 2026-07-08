@@ -43,7 +43,16 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     final forYou = results[3] as List<Movie>;
 
     // No configured featured movie → fall back to the first trending one.
-    featured ??= trending.isNotEmpty ? trending.first : null;
+    // `trending` entries are MovieCard-shaped (no cast/crew), so the fallback
+    // must fetch the full detail to get director/actors like a real featured
+    // movie would have.
+    if (featured == null && trending.isNotEmpty) {
+      try {
+        featured = await MovieService.getMovieDetail(trending.first.id);
+      } catch (_) {
+        featured = trending.first;
+      }
+    }
 
     if (featured == null &&
         trending.isEmpty &&
@@ -191,7 +200,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                     const Icon(Icons.star, color: AppTheme.secondaryPurple, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      '${movie.voteAverage ?? 0.0}',
+                      (movie.voteAverage ?? 0.0).toStringAsFixed(1),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(width: 12),

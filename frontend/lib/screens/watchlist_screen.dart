@@ -338,7 +338,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                         const Icon(Icons.star, color: AppTheme.secondaryPurple, size: 20),
                         const SizedBox(width: 4),
                         Text(
-                          '${movie.voteAverage ?? 0.0}',
+                          (movie.voteAverage ?? 0.0).toStringAsFixed(1),
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(width: 20),
