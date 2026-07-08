@@ -16,10 +16,10 @@ class WatchlistScreen extends StatefulWidget {
   const WatchlistScreen({super.key});
 
   @override
-  State<WatchlistScreen> createState() => _WatchlistScreenState();
+  State<WatchlistScreen> createState() => WatchlistScreenState();
 }
 
-class _WatchlistScreenState extends State<WatchlistScreen> {
+class WatchlistScreenState extends State<WatchlistScreen> {
   late Future<List<Movie>> _moviesFuture;
   List<Movie> _movies = [];
   SortOption _currentSort = SortOption.releaseDate;
@@ -37,6 +37,15 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
       _sortMovies();
       return _movies;
     });
+  }
+
+  /// Recharge la watchlist depuis le back. `MainNavigation` conserve cet
+  /// écran vivant dans un `IndexedStack` (jamais recréé), donc `initState`
+  /// ne suffit pas : un ajout/retrait fait depuis un autre écran (détail,
+  /// recherche…) ne serait sinon jamais reflété ici.
+  Future<void> reload() async {
+    setState(_loadMovies);
+    await _moviesFuture;
   }
 
   void _sortMovies() {
@@ -276,13 +285,14 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
           (context, index) {
             return MovieCard(
               movie: _movies[index],
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => MovieDetailScreen(movie: _movies[index]),
                   ),
                 );
+                if (mounted) reload();
               },
             );
           },
@@ -309,13 +319,14 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                       flex: 3,
                       child: MovieCard(
                         movie: movie,
-                        onTap: () {
-                          Navigator.push(
+                        onTap: () async {
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => MovieDetailScreen(movie: movie),
                             ),
                           );
+                          if (mounted) reload();
                         },
                       ),
                     ),

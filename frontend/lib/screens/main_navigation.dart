@@ -21,19 +21,32 @@ class _MainNavigationState extends State<MainNavigation> {
   // Discover par défaut
   int _currentIndex = 2;
 
+  final _watchlistKey = GlobalKey<WatchlistScreenState>();
+
   void setTab(int index) {
     setState(() {
       _currentIndex = index;
     });
+    _refreshWatchlistIfNeeded(index);
+  }
+
+  // L'écran watchlist reste vivant dans l'IndexedStack ci-dessous, donc un
+  // ajout/retrait fait depuis un autre onglet (détail, recherche…) ne se
+  // reflète pas automatiquement : on force un rechargement à chaque fois
+  // que l'utilisateur revient sur cet onglet.
+  void _refreshWatchlistIfNeeded(int index) {
+    if (index == 0) {
+      _watchlistKey.currentState?.reload();
+    }
   }
 
   // Liste des écrans dans l'ordre des onglets
-  final List<Widget> _screens = const [
-    WatchlistScreen(),
-    SearchScreen(),
-    DiscoveryScreen(),
-    FriendsScreen(),
-    MyProfileScreen(),
+  late final List<Widget> _screens = [
+    WatchlistScreen(key: _watchlistKey),
+    const SearchScreen(),
+    const DiscoveryScreen(),
+    const FriendsScreen(),
+    const MyProfileScreen(),
   ];
 
   @override
@@ -52,6 +65,7 @@ class _MainNavigationState extends State<MainNavigation> {
           setState(() {
             _currentIndex = index;
           });
+          _refreshWatchlistIfNeeded(index);
         },
         type: BottomNavigationBarType.fixed,
         items: [
