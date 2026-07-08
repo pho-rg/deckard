@@ -31,12 +31,18 @@ class ApiService {
         if (token != null) 'Authorization': 'Bearer $token',
       };
 
+  /// Endpoints où un 401 signifie "identifiants invalides", pas "session
+  /// expirée" — ils ne doivent jamais déclencher le handler global de purge
+  /// + redirection, sous peine de détruire l'écran de login/register (et son
+  /// message d'erreur avec) juste au moment où celui-ci devrait s'afficher.
+  static const _unauthenticatedEndpoints = {'/auth/login', '/auth/register'};
+
   Future<dynamic> get(String endpoint) async {
     final response = await http.get(
       Uri.parse('$baseUrl$endpoint'),
       headers: _headers,
     );
-    return _handle(response);
+    return _handle(response, endpoint);
   }
 
   Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
@@ -45,7 +51,7 @@ class ApiService {
       headers: _headers,
       body: json.encode(body),
     );
-    return _handle(response);
+    return _handle(response, endpoint);
   }
 
   Future<dynamic> put(String endpoint, Map<String, dynamic> body) async {
@@ -54,7 +60,7 @@ class ApiService {
       headers: _headers,
       body: json.encode(body),
     );
-    return _handle(response);
+    return _handle(response, endpoint);
   }
 
   Future<dynamic> delete(String endpoint) async {
@@ -62,12 +68,12 @@ class ApiService {
       Uri.parse('$baseUrl$endpoint'),
       headers: _headers,
     );
-    return _handle(response);
+    return _handle(response, endpoint);
   }
 
   /// Vérifie le statut HTTP et décode le corps JSON.
   /// En cas d'erreur, remonte le message `detail` renvoyé par FastAPI.
-  dynamic _handle(http.Response response) {
+  dynamic _handle(http.Response response, String endpoint) {
     final status = response.statusCode;
 
     if (status >= 200 && status < 300) {
@@ -77,8 +83,10 @@ class ApiService {
 
     final message = _extractDetail(response);
     if (status == 401) {
-      // Session invalide → purge + redirection (branchée dans main()).
-      onUnauthorized?.call();
+      if (!_unauthenticatedEndpoints.contains(endpoint)) {
+        // Session invalide → purge + redirection (branchée dans main()).
+        onUnauthorized?.call();
+      }
       throw ApiException(message, statusCode: status, isAuth: true);
     }
     if (status == 403) {

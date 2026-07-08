@@ -383,15 +383,15 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         Navigator.of(context).pop();
         if (isSelected) return;
         localeProvider.setLocale(locale);
-        // Content (titles, synopsis…) is served in whatever language is
-        // stored on the backend user, so it must be kept in sync with the
-        // UI locale or movies keep coming back in the previous language.
+        // Le contenu (titres, synopsis…) est servi dans la langue stockée
+        // côté backend sur l'utilisateur : il faut la synchroniser avec la
+        // langue de l'UI, sinon les films restent affichés dans l'ancienne.
         try {
           await ProfileService().updateMe(
             language: locale.languageCode == 'en' ? 'en-US' : 'fr-FR',
           );
         } catch (_) {
-          // Best-effort: UI language still switches even if the sync fails.
+          // Best-effort : la langue de l'UI change même si la sync échoue.
         }
         if (mounted) {
           setState(_loadData);
