@@ -58,7 +58,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
-  void _refresh() => setState(() => _dataFuture = _load());
+  void _refresh() => setState(() {
+        _dataFuture = _load();
+      });
 
   @override
   Widget build(BuildContext context) {

@@ -1,8 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../models/profile_models.dart';
+import '../providers/locale_provider.dart';
 import '../services/auth_service.dart';
 import '../services/movie_service.dart';
 import '../services/profile_service.dart';
@@ -98,7 +100,9 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  void _refresh() => setState(() => _dataFuture = _load());
+  void _refresh() => setState(() {
+        _dataFuture = _load();
+      });
 
   Future<void> _confirmLogout(
       BuildContext context, AppLocalizations l10n) async {
@@ -689,7 +693,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     super.initState();
     _usernameCtrl = TextEditingController(text: widget.user.username);
     _emailCtrl = TextEditingController(text: widget.user.email);
-    _language = widget.user.language.startsWith('en') ? 'en-US' : 'fr-FR';
+    final currentLocale = context.read<LocaleProvider>().locale.languageCode;
+    _language = currentLocale == 'en' ? 'en-US' : 'fr-FR';
   }
 
   @override
@@ -711,7 +716,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     final newEmail = _emailCtrl.text.trim() != widget.user.email
         ? _emailCtrl.text.trim()
         : null;
-    final newLanguage = _language != widget.user.language ? _language : null;
+    final currentLocale = context.read<LocaleProvider>().locale.languageCode;
+    final newLanguage = _language.startsWith(currentLocale) ? null : _language;
     final currentPw = _currentPasswordCtrl.text.isEmpty
         ? null
         : _currentPasswordCtrl.text;
@@ -727,7 +733,13 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         currentPassword: currentPw,
         newPassword: newPw,
       );
-      if (mounted) Navigator.of(context).pop();
+      if (!mounted) return;
+      if (newLanguage != null) {
+        context.read<LocaleProvider>().setLocale(
+              Locale(newLanguage.startsWith('en') ? 'en' : 'fr'),
+            );
+      }
+      Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
