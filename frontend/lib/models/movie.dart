@@ -162,10 +162,11 @@ class Movie {
 
   /// Build a Movie from the backend `MovieCard` shape (DB-backed):
   /// { tmdb_id, title, original_title, overview, release_date,
-  ///   vote_average, poster_url, backdrop_url }.
+  ///   vote_average, poster_url, backdrop_url, genres: [{tmdb_id, name}] }.
   /// The URL fields are already absolute; posterUrl/backdropUrl getters
   /// pass http URLs through unchanged.
   factory Movie.fromCard(Map<String, dynamic> json) {
+    final genresJson = (json['genres'] as List?) ?? const [];
     return Movie(
       id: _toInt(json['tmdb_id']),
       title: (json['title'] ?? json['original_title'] ?? '') as String,
@@ -174,6 +175,12 @@ class Movie {
       overview: json['overview'] as String?,
       releaseDate: json['release_date'] as String?,
       voteAverage: _toDouble(json['vote_average']),
+      genres: genresJson
+          .map((g) => Genre(
+                id: _toInt(g['tmdb_id']),
+                name: (g['name'] ?? '') as String,
+              ))
+          .toList(),
     );
   }
 

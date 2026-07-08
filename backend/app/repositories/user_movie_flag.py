@@ -9,9 +9,17 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.base import Base
 from app.models.favorite import Favorite
+from app.models.genre import Genre
 from app.models.movie import Movie
 from app.models.watched import WatchedItem
 from app.models.watchlist import WatchlistItem
+
+# Eager-load everything `presenter.movie_card` needs to localize a card.
+_CARD_OPTIONS = (
+    selectinload(Movie.contents),
+    selectinload(Movie.genres).selectinload(Genre.contents),
+)
+
 
 # Common repository pattern for favorites, watchlist and watched
 class _UserMovieFlagRepository:
@@ -62,7 +70,7 @@ class _UserMovieFlagRepository:
                 .join(self.model, self.model.movie_id == Movie.tmdb_id)
                 .where(self.model.user_id == user_id)
                 .order_by(ts_col.desc())
-                .options(selectinload(Movie.contents))
+                .options(*_CARD_OPTIONS)
             )
         )
 
@@ -96,6 +104,6 @@ class WatchedRepository(_UserMovieFlagRepository):
             .group_by(Movie.tmdb_id)
             .order_by(latest.desc())
             .limit(limit)
-            .options(selectinload(Movie.contents))
+            .options(*_CARD_OPTIONS)
         ).all()
         return [r[0] for r in rows]

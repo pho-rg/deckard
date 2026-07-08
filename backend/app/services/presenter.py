@@ -54,6 +54,10 @@ def person_card(person) -> PersonCard:
 
 def movie_card(movie: Movie, lang_iso: str) -> MovieCard:
     title, overview, _ = _movie_title(movie, lang_iso)
+    genres = []
+    for g in movie.genres:
+        gc = pick_content(g.contents, lang_iso)
+        genres.append(GenreOut(tmdb_id=g.tmdb_id, name=gc.name if gc else ""))
     return MovieCard(
         tmdb_id=movie.tmdb_id,
         title=title,
@@ -63,6 +67,7 @@ def movie_card(movie: Movie, lang_iso: str) -> MovieCard:
         vote_average=movie.vote_average,
         poster_url=_image_url(movie.poster_path, "w500"),
         backdrop_url=_image_url(movie.backdrop_path, "w1280"),
+        genres=genres,
     )
 
 

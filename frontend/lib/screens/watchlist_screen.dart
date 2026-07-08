@@ -62,6 +62,9 @@ class WatchlistScreenState extends State<WatchlistScreen> {
     });
   }
 
+  // Ne cycle qu'entre les 3 densités de grille : la vue plein écran
+  // "un film à la fois" n'est volontairement pas dans ce cycle (elle
+  // surprenait — on tombait dedans sans l'avoir demandé).
   void _cycleViewMode() {
     setState(() {
       switch (_currentView) {
@@ -72,8 +75,6 @@ class WatchlistScreenState extends State<WatchlistScreen> {
           _currentView = ViewMode.grid2;
           break;
         case ViewMode.grid2:
-          _currentView = ViewMode.oneByOne;
-          break;
         case ViewMode.oneByOne:
           _currentView = ViewMode.grid4;
           break;
@@ -98,12 +99,14 @@ class WatchlistScreenState extends State<WatchlistScreen> {
                     _sortMovies();
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<SortOption>>[
-                    PopupMenuItem<SortOption>(
+                    CheckedPopupMenuItem<SortOption>(
                       value: SortOption.releaseDate,
+                      checked: _currentSort == SortOption.releaseDate,
                       child: Text(l10n.releaseDate),
                     ),
-                    PopupMenuItem<SortOption>(
+                    CheckedPopupMenuItem<SortOption>(
                       value: SortOption.rating,
+                      checked: _currentSort == SortOption.rating,
                       child: Text(l10n.ratings),
                     ),
                   ],
@@ -261,7 +264,6 @@ class WatchlistScreenState extends State<WatchlistScreen> {
       case ViewMode.grid3:
         return Icons.dashboard;
       case ViewMode.grid2:
-        return Icons.view_carousel;
       case ViewMode.oneByOne:
         return Icons.grid_view;
     }
@@ -283,17 +285,71 @@ class WatchlistScreenState extends State<WatchlistScreen> {
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) {
-            return MovieCard(
-              movie: _movies[index],
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MovieDetailScreen(movie: _movies[index]),
+            final movie = _movies[index];
+            return Stack(
+              key: ValueKey(movie.id),
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: MovieCard(
+                    movie: movie,
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MovieDetailScreen(movie: movie),
+                        ),
+                      );
+                      if (mounted) reload();
+                    },
                   ),
-                );
-                if (mounted) reload();
-              },
+                ),
+                // Titre + info de tri en overlay : sans ça, la grille n'affiche
+                // que des affiches et un changement de tri est invisible.
+                IgnorePointer(
+                  child: Container(
+                    alignment: Alignment.bottomLeft,
+                    padding: const EdgeInsets.fromLTRB(6, 16, 6, 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.85),
+                        ],
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          movie.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _currentSort == SortOption.rating
+                              ? (movie.voteAverage ?? 0.0).toStringAsFixed(1)
+                              : (movie.releaseDate?.split('-').first ?? ''),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             );
           },
           childCount: _movies.length,
