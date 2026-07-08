@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/movie.dart';
 import '../services/movie_service.dart';
+import '../services/profile_service.dart';
 import '../widgets/movie_card.dart';
 import '../providers/locale_provider.dart';
 import '../theme/app_theme.dart';
@@ -378,9 +379,23 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     final isSelected = localeProvider.locale == locale;
 
     return InkWell(
-      onTap: () {
-        localeProvider.setLocale(locale);
+      onTap: () async {
         Navigator.of(context).pop();
+        if (isSelected) return;
+        localeProvider.setLocale(locale);
+        // Content (titles, synopsis…) is served in whatever language is
+        // stored on the backend user, so it must be kept in sync with the
+        // UI locale or movies keep coming back in the previous language.
+        try {
+          await ProfileService().updateMe(
+            language: locale.languageCode == 'en' ? 'en-US' : 'fr-FR',
+          );
+        } catch (_) {
+          // Best-effort: UI language still switches even if the sync fails.
+        }
+        if (mounted) {
+          setState(_loadData);
+        }
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
