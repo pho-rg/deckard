@@ -150,7 +150,9 @@ class MovieService:
 
     def list_trending(self, *, language: str = "fr-FR") -> dict[str, Any]:
         return tmdb_cache.get_or_compute(
-            "trending", ("trending", language), lambda: self.tmdb.trending(language=language)
+            "trending",
+            ("trending", language),
+            lambda: self._with_catalogue_images(self.tmdb.trending(language=language)),
         )
 
     def list_now_playing(
@@ -160,5 +162,24 @@ class MovieService:
         return tmdb_cache.get_or_compute(
             "now_playing",
             key,
-            lambda: self.tmdb.now_playing(region=region, page=page, language=language),
+            lambda: self._with_catalogue_images(
+                self.tmdb.now_playing(region=region, page=page, language=language)
+            ),
         )
+
+    def _with_catalogue_images(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Overlay poster/backdrop from our DB for movies already in the
+        catalogue, so trending/now-playing (raw TMDB) match what the detail
+        page shows (DB-sourced) — TMDB's live poster can drift from the one
+        we imported/last synced, which otherwise makes the same movie appear
+        with two different posters depending on where it's shown.
+        """
+        results = payload.get("results") or []
+        ids = [r["id"] for r in results if r.get("id") is not None]
+        by_id = {m.tmdb_id: m for m in self.repo.list_by_ids(ids)}
+        for r in results:
+            movie = by_id.get(r.get("id"))
+            if movie is not None:
+                r["poster_path"] = movie.poster_path
+                r["backdrop_path"] = movie.backdrop_path
+        return payload

@@ -89,6 +89,7 @@ class MovieCard(BaseModel):
     vote_average: Decimal | None = None
     poster_url: str | None = None
     backdrop_url: str | None = None
+    genres: list[GenreOut] = []
 
 
 # ---------- TMDB passthrough (search / trending / now-playing) ----------

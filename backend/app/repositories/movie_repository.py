@@ -21,7 +21,7 @@ _FULL_OPTIONS = (
 # Lighter eager-load for list/summary shapes.
 _SUMMARY_OPTIONS = (
     selectinload(Movie.contents),
-    selectinload(Movie.genres),
+    selectinload(Movie.genres).selectinload(Genre.contents),
 )
 
 

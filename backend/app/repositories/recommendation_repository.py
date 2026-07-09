@@ -7,10 +7,17 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.favorite import Favorite
 from app.models.friendship import Friendship, FriendshipStatus
+from app.models.genre import Genre
 from app.models.movie import Movie
 from app.models.rating import Rating
 from app.models.watched import WatchedItem
 from app.models.watchlist import WatchlistItem
+
+# Eager-load everything `presenter.movie_card` needs to localize a card.
+_CARD_OPTIONS = (
+    selectinload(Movie.contents),
+    selectinload(Movie.genres).selectinload(Genre.contents),
+)
 
 # Weights — favorite > high rating > watched > watchlist
 _W_FAVORITE = 4
@@ -49,7 +56,7 @@ class RecommendationRepository:
             .where(Movie.tmdb_id.notin_(select(my_seen.c.movie_id)))
             .order_by(func.random())
             .limit(limit)
-            .options(selectinload(Movie.contents))
+            .options(*_CARD_OPTIONS)
         )
         return list(self.db.scalars(stmt))
 
@@ -109,7 +116,7 @@ class RecommendationRepository:
             .where(Movie.tmdb_id.notin_(select(my_seen.c.movie_id)))
             .order_by(scored.c.score.desc(), Movie.tmdb_id.asc())
             .limit(limit)
-            .options(selectinload(Movie.contents))
+            .options(*_CARD_OPTIONS)
         )
 
         return list(self.db.scalars(stmt))
