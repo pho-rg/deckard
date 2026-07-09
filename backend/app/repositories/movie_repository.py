@@ -1,4 +1,4 @@
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import case, func, or_, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.featured_movie import FeaturedMovie
@@ -93,37 +93,69 @@ class MovieRepository:
     def search(
         self, query: str, *, page: int = 1, page_size: int = 20
     ) -> tuple[list[Movie], int]:
-        """Full-catalogue search on localized title + original title."""
-        pattern = f"%{query.strip()}%"
+        """Full-catalogue search on localized title + original title.
+
+        Ranked by textual relevance first (exact match, then prefix, then
+        plain substring) — NOT by vote_average/release_date. Most movies
+        have no Deckard community rating yet (null), so ordering by rating
+        alone pushed the actual searched-for movie behind unrelated ones
+        that happened to have a rating (e.g. searching "Interstellar" could
+        surface unrelated titles before the real movie).
+        """
+        q = query.strip()
+        pattern = f"%{q}%"
+        q_lower = q.lower()
         match = or_(
             MovieContent.title.ilike(pattern),
             Movie.original_title.ilike(pattern),
         )
+        relevance = case(
+            (
+                or_(
+                    func.lower(MovieContent.title) == q_lower,
+                    func.lower(Movie.original_title) == q_lower,
+                ),
+                0,
+            ),
+            (
+                or_(
+                    func.lower(MovieContent.title).like(f"{q_lower}%"),
+                    func.lower(Movie.original_title).like(f"{q_lower}%"),
+                ),
+                1,
+            ),
+            else_=2,
+        )
 
-        ids_stmt = (
-            select(Movie.tmdb_id)
+        # Best (lowest) relevance per movie — a title can match via several
+        # localized MovieContent rows.
+        ranked = (
+            select(
+                Movie.tmdb_id.label("tmdb_id"),
+                func.min(relevance).label("relevance"),
+            )
+            .select_from(Movie)
             .outerjoin(MovieContent, MovieContent.tmdb_id == Movie.tmdb_id)
             .where(match)
-            .distinct()
+            .group_by(Movie.tmdb_id)
+            .subquery()
         )
-        total = self.db.scalar(
-            select(func.count()).select_from(ids_stmt.subquery())
-        ) or 0
+
+        total = self.db.scalar(select(func.count()).select_from(ranked)) or 0
         if total == 0:
             return [], 0
 
         rows = (
             self.db.scalars(
                 select(Movie)
-                .outerjoin(MovieContent, MovieContent.tmdb_id == Movie.tmdb_id)
-                .where(match)
+                .join(ranked, ranked.c.tmdb_id == Movie.tmdb_id)
                 .options(*_SUMMARY_OPTIONS)
                 .order_by(
+                    ranked.c.relevance.asc(),
                     Movie.vote_average.desc().nullslast(),
                     Movie.release_date.desc().nullslast(),
                     Movie.tmdb_id.desc(),
                 )
-                .distinct()
                 .limit(page_size)
                 .offset((page - 1) * page_size)
             )

@@ -37,37 +37,44 @@ class ApiService {
   /// message d'erreur avec) juste au moment où celui-ci devrait s'afficher.
   static const _unauthenticatedEndpoints = {'/auth/login', '/auth/register'};
 
+  // Sans ça, une requête bloquée (back lent, connexion qui traîne) laisse
+  // l'appelant en attente indéfiniment — ex. la recherche qui tourne en
+  // boucle sans jamais afficher de résultat ni d'erreur.
+  static const _timeout = Duration(seconds: 15);
+
   Future<dynamic> get(String endpoint) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers,
-    );
+    final response = await http
+        .get(Uri.parse('$baseUrl$endpoint'), headers: _headers)
+        .timeout(_timeout);
     return _handle(response, endpoint);
   }
 
   Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers,
-      body: json.encode(body),
-    );
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl$endpoint'),
+          headers: _headers,
+          body: json.encode(body),
+        )
+        .timeout(_timeout);
     return _handle(response, endpoint);
   }
 
   Future<dynamic> put(String endpoint, Map<String, dynamic> body) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers,
-      body: json.encode(body),
-    );
+    final response = await http
+        .put(
+          Uri.parse('$baseUrl$endpoint'),
+          headers: _headers,
+          body: json.encode(body),
+        )
+        .timeout(_timeout);
     return _handle(response, endpoint);
   }
 
   Future<dynamic> delete(String endpoint) async {
-    final response = await http.delete(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers,
-    );
+    final response = await http
+        .delete(Uri.parse('$baseUrl$endpoint'), headers: _headers)
+        .timeout(_timeout);
     return _handle(response, endpoint);
   }
 
