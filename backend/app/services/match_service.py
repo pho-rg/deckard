@@ -5,7 +5,8 @@ import uuid
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-
+from app.repositories.rating_repository import RatingRepository
+from app.services.ml_recommender import get_recommendations
 from app.models.match import MatchSession, MatchStatus
 from app.models.user import User
 from app.repositories.match_repository import MatchRepository
@@ -26,6 +27,7 @@ class MatchService:
         self.db = db
         self.repo = MatchRepository(db)
         self.movies = MovieRepository(db)
+        self.ratings = RatingRepository(db)
 
     # ---- public API ----
 
@@ -111,10 +113,28 @@ class MatchService:
     # ---- internals ----
 
     def _new_run(self, session_id: uuid.UUID) -> None:
-        # V1: random movies as the "common recommendation". An AI model that
-        # blends the participants' tastes will replace random_movies later.
-        movies = self.movies.random_movies(limit=_MATCH_MOVIE_COUNT)
-        self.repo.set_movies(session_id, [m.tmdb_id for m in movies])
+        session = self.repo.get(session_id)
+        
+        group_ratings = []
+        seen_movies = set()
+        
+        for participant in session.participants:
+            # Récupérer les notes du participant (converties en /5.0)
+            user_ratings_models = self.ratings.list_for_user(participant.user_id)
+            user_ratings = {r.movie_id: float(r.rating) / 2.0 for r in user_ratings_models}
+            group_ratings.append(user_ratings)
+            
+            # On ajoute ces films dans "seen_movies" pour éviter qu'un film déjà noté soit suggéré
+            seen_movies.update(user_ratings.keys())
+            
+        # Appel au modèle en mode groupe
+        recommended_ids = get_recommendations(
+            group_ratings, 
+            top_x=_MATCH_MOVIE_COUNT, 
+            seen_movies=list(seen_movies)
+        )
+        
+        self.repo.set_movies(session_id, recommended_ids)
         self.repo.reset_run(session_id)
         self.repo.set_status(session_id, MatchStatus.in_progress)
 
