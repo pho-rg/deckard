@@ -76,7 +76,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.appTitle),
+        title: Text(
+          l10n.appTitle,
+          style: const TextStyle(
+            fontFamily: 'LemonMilkItalic',
+            fontSize: 24,
+            letterSpacing: 3,
+          ),
+        ),
         centerTitle: true,
         actions: [
           IconButton(

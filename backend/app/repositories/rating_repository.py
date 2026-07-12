@@ -62,8 +62,10 @@ class RatingRepository:
             self.db.scalars(
                 select(Rating)
                 .where(Rating.user_id == user_id)
-                .order_by(Rating.updated_at.desc())
-                .options(joinedload(Rating.movie).selectinload(Movie.contents))
+                .order_by(Rating.updated_at.desc(), Rating.movie_id.desc())
+                .options(
+                    selectinload(Rating.movie).selectinload(Movie.contents),
+                )
             )
         )
 

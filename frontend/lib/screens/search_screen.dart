@@ -100,21 +100,21 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
 
     // DB-backed search: movies + persons in parallel.
-    Future.wait([
-      MovieService.searchMovies(query),
-      MovieService.searchPersons(query),
-    ]).then((results) {
+    // Each call is independent so one failing doesn't block the other.
+    final moviesFuture = MovieService.searchMovies(query).catchError((e) {
+      debugPrint('[SearchScreen] movies search error: $e');
+      return <Movie>[];
+    });
+    final peopleFuture = MovieService.searchPersons(query).catchError((e) {
+      debugPrint('[SearchScreen] persons search error: $e');
+      return <PersonResult>[];
+    });
+
+    Future.wait([moviesFuture, peopleFuture]).then((results) {
       if (!mounted) return;
       setState(() {
         _movieResults = results[0] as List<Movie>;
         _peopleResults = results[1] as List<PersonResult>;
-        _isSearching = false;
-      });
-    }).catchError((_) {
-      if (!mounted) return;
-      setState(() {
-        _movieResults = [];
-        _peopleResults = [];
         _isSearching = false;
       });
     });
@@ -303,7 +303,13 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 width: 60,
                 height: 90,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(color: Colors.white10),
+                placeholder: (context, url) => Container(width: 60, height: 90, color: Colors.white10),
+                errorWidget: (context, url, error) => Container(
+                  width: 60,
+                  height: 90,
+                  color: Colors.white10,
+                  child: const Icon(Icons.movie, color: Colors.white24, size: 24),
+                ),
               ),
             ),
             const SizedBox(width: 16),

@@ -79,6 +79,14 @@ def get_movie(tmdb_id: int, db: DbSession, current_user: CurrentUser):
         ) from None
 
 
+@router.get("/{tmdb_id}/tmdb-rating")
+def get_tmdb_rating(tmdb_id: int, db: DbSession, current_user: CurrentUser):
+    """Fetch the TMDB community rating for a movie (separate call so the
+    movie detail endpoint is never blocked by TMDB latency)."""
+    rating = MovieService(db).get_tmdb_rating(tmdb_id, language=current_user.language)
+    return {"vote_average": float(rating) if rating is not None else None}
+
+
 @router.get("/{tmdb_id}/user-state", response_model=UserStateOut)
 def get_user_state(tmdb_id: int, db: DbSession, current_user: CurrentUser):
     return UserMovieService(db).get_user_state(current_user, tmdb_id)

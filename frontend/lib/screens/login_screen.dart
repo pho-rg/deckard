@@ -407,8 +407,8 @@ class _DeckardLogo extends StatelessWidget {
         const Text(
           'DECKARD',
           style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
+            fontFamily: 'LemonMilkItalic',
+            fontSize: 36,
             color: AppTheme.textMain,
             letterSpacing: 6,
           ),

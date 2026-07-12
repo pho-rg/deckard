@@ -68,8 +68,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.appTitle),
-        centerTitle: true,
+        title: Text(l10n.friends),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add_outlined),

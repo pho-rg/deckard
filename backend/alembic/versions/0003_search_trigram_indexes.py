@@ -18,22 +18,31 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # La recherche catalogue (MovieRepository.search) filtre avec
-    # ILIKE '%query%' sur ces deux colonnes. Un index btree classique ne sert
-    # à rien pour un pattern avec joker en tête ('%...') — sans index adapté,
-    # chaque recherche fait un scan séquentiel complet des deux tables, ce
-    # qui devient très lent (voire perçu comme un chargement infini côté
-    # app) à mesure que le catalogue grossit.
+    # ILIKE '%query%' sur movie_content.title. Un index btree classique ne
+    # sert à rien pour un pattern avec joker en tête ('%...') — sans index
+    # adapté, chaque recherche fait un scan séquentiel complet, ce qui
+    # devient très lent (chargement infini côté app) quand le catalogue
+    # grossit. Le GIN trigram résout ça.
     op.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm')
     op.execute(
-        'CREATE INDEX ix_movie_content_title_trgm ON movie_content '
+        'CREATE INDEX IF NOT EXISTS ix_movie_content_title_trgm ON movie_content '
         'USING gin (title gin_trgm_ops)'
     )
     op.execute(
-        'CREATE INDEX ix_movies_original_title_trgm ON movies '
-        'USING gin (original_title gin_trgm_ops)'
+        'CREATE INDEX IF NOT EXISTS ix_persons_name_trgm ON persons '
+        'USING gin (name gin_trgm_ops)'
     )
+    # Nettoyage : l'ancien index sur movies.original_title n'est plus
+    # utilisé (la recherche passe uniquement par movie_content.title).
+    op.execute('DROP INDEX IF EXISTS ix_movies_original_title_trgm')
 
 
 def downgrade() -> None:
-    op.execute('DROP INDEX IF EXISTS ix_movies_original_title_trgm')
+    op.execute('DROP INDEX IF EXISTS ix_persons_name_trgm')
     op.execute('DROP INDEX IF EXISTS ix_movie_content_title_trgm')
+    # Restaurer l'ancien index si on rollback.
+    op.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm')
+    op.execute(
+        'CREATE INDEX IF NOT EXISTS ix_movies_original_title_trgm ON movies '
+        'USING gin (original_title gin_trgm_ops)'
+    )

@@ -22,22 +22,21 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 2;
 
   final _watchlistKey = GlobalKey<WatchlistScreenState>();
+  final _profileKey = GlobalKey<MyProfileScreenState>();
 
   void setTab(int index) {
     setState(() {
       _currentIndex = index;
     });
-    _refreshWatchlistIfNeeded(index);
+    _refreshOnTabSwitch(index);
   }
 
-  // L'écran watchlist reste vivant dans l'IndexedStack ci-dessous, donc un
-  // ajout/retrait fait depuis un autre onglet (détail, recherche…) ne se
-  // reflète pas automatiquement : on force un rechargement à chaque fois
-  // que l'utilisateur revient sur cet onglet.
-  void _refreshWatchlistIfNeeded(int index) {
-    if (index == 0) {
-      _watchlistKey.currentState?.reload();
-    }
+  // Les écrans restent vivants dans l'IndexedStack ci-dessous, donc un
+  // changement fait depuis un autre onglet ne se reflète pas automatiquement :
+  // on force un rechargement à chaque fois que l'utilisateur revient.
+  void _refreshOnTabSwitch(int index) {
+    if (index == 0) _watchlistKey.currentState?.reload();
+    if (index == 4) _profileKey.currentState?.reload();
   }
 
   // Liste des écrans dans l'ordre des onglets
@@ -46,7 +45,7 @@ class _MainNavigationState extends State<MainNavigation> {
     const SearchScreen(),
     const DiscoveryScreen(),
     const FriendsScreen(),
-    const MyProfileScreen(),
+    MyProfileScreen(key: _profileKey),
   ];
 
   @override
@@ -59,13 +58,17 @@ class _MainNavigationState extends State<MainNavigation> {
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Colors.white10, width: 0.5)),
+        ),
+        child: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
-          _refreshWatchlistIfNeeded(index);
+          _refreshOnTabSwitch(index);
         },
         type: BottomNavigationBarType.fixed,
         items: [
@@ -94,6 +97,7 @@ class _MainNavigationState extends State<MainNavigation> {
             label: l10n.profile,
           ),
         ],
+      ),
       ),
     );
   }

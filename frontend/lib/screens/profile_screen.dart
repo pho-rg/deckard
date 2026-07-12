@@ -47,10 +47,10 @@ class ProfileScreen extends StatefulWidget {
   bool get isOwnProfile => userId == null;
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
+class ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late Future<_ProfileData> _dataFuture;
@@ -100,9 +100,16 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  void _refresh() => setState(() {
+  void reload() => setState(() {
         _dataFuture = _load();
       });
+
+  void _refresh() => reload();
+
+  Future<void> _onMovieTap(int tmdbId) async {
+    final opened = await _openDetail(context, tmdbId);
+    if (opened && mounted) _refresh();
+  }
 
   Future<void> _confirmLogout(
       BuildContext context, AppLocalizations l10n) async {
@@ -180,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(username ?? l10n.profile),
-        centerTitle: true,
+        centerTitle: !widget.isOwnProfile,
       ),
       body: body,
     );
@@ -190,8 +197,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       BuildContext context, AppLocalizations l10n, _ProfileData data) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(data.user.username.toUpperCase()),
-        centerTitle: true,
+        title: Text(widget.isOwnProfile ? l10n.profile : data.user.username.toUpperCase()),
+        centerTitle: !widget.isOwnProfile,
         actions: [
           if (widget.isOwnProfile) ...[
             IconButton(
@@ -224,14 +231,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                 _MovieGrid(
                   movies: data.favorites,
                   emptyLabel: l10n.noFavorites,
+                  onMovieTap: _onMovieTap,
                 ),
                 _MovieGrid(
                   movies: data.watched,
                   emptyLabel: l10n.noWatched,
+                  onMovieTap: _onMovieTap,
                 ),
                 _RatingsList(
                   ratings: data.ratings,
                   emptyLabel: l10n.noRatingsYet,
+                  onMovieTap: _onMovieTap,
                 ),
               ],
             ),
@@ -412,14 +422,16 @@ class _StatItem extends StatelessWidget {
 }
 
 // Fetch the full movie detail from the backend, then open its screen.
-Future<void> _openDetail(BuildContext context, int tmdbId) async {
+// Returns true if the detail screen was opened (so the caller can refresh).
+Future<bool> _openDetail(BuildContext context, int tmdbId) async {
   try {
     final full = await MovieService.getMovieDetail(tmdbId);
     if (context.mounted) {
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: full)),
       );
+      return true;
     }
   } catch (_) {
     if (context.mounted) {
@@ -428,6 +440,7 @@ Future<void> _openDetail(BuildContext context, int tmdbId) async {
       );
     }
   }
+  return false;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -437,8 +450,9 @@ Future<void> _openDetail(BuildContext context, int tmdbId) async {
 class _MovieGrid extends StatelessWidget {
   final List<ProfileMovieCard> movies;
   final String emptyLabel;
+  final Future<void> Function(int tmdbId)? onMovieTap;
 
-  const _MovieGrid({required this.movies, required this.emptyLabel});
+  const _MovieGrid({required this.movies, required this.emptyLabel, this.onMovieTap});
 
   @override
   Widget build(BuildContext context) {
@@ -460,15 +474,16 @@ class _MovieGrid extends StatelessWidget {
         mainAxisSpacing: 6,
       ),
       itemCount: movies.length,
-      itemBuilder: (_, i) => _PosterTile(movie: movies[i]),
+      itemBuilder: (_, i) => _PosterTile(movie: movies[i], onTap: onMovieTap),
     );
   }
 }
 
 class _PosterTile extends StatelessWidget {
   final ProfileMovieCard movie;
+  final Future<void> Function(int tmdbId)? onTap;
 
-  const _PosterTile({required this.movie});
+  const _PosterTile({required this.movie, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -488,7 +503,7 @@ class _PosterTile extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: () => _openDetail(context, movie.tmdbId),
+      onTap: () => onTap != null ? onTap!(movie.tmdbId) : _openDetail(context, movie.tmdbId),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4),
         child: image,
@@ -511,8 +526,9 @@ class _PosterTile extends StatelessWidget {
 class _RatingsList extends StatelessWidget {
   final List<ProfileRating> ratings;
   final String emptyLabel;
+  final Future<void> Function(int tmdbId)? onMovieTap;
 
-  const _RatingsList({required this.ratings, required this.emptyLabel});
+  const _RatingsList({required this.ratings, required this.emptyLabel, this.onMovieTap});
 
   @override
   Widget build(BuildContext context) {
@@ -530,15 +546,16 @@ class _RatingsList extends StatelessWidget {
       itemCount: ratings.length,
       separatorBuilder: (_, __) =>
           const Divider(color: Colors.white10, height: 1),
-      itemBuilder: (_, i) => _RatingTile(rating: ratings[i]),
+      itemBuilder: (_, i) => _RatingTile(rating: ratings[i], onTap: onMovieTap),
     );
   }
 }
 
 class _RatingTile extends StatelessWidget {
   final ProfileRating rating;
+  final Future<void> Function(int tmdbId)? onTap;
 
-  const _RatingTile({required this.rating});
+  const _RatingTile({required this.rating, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -546,7 +563,7 @@ class _RatingTile extends StatelessWidget {
     final posterUrl = movie.posterUrl;
 
     return GestureDetector(
-      onTap: () => _openDetail(context, movie.tmdbId),
+      onTap: () => onTap != null ? onTap!(movie.tmdbId) : _openDetail(context, movie.tmdbId),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(

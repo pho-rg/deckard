@@ -33,6 +33,14 @@ class MovieService {
     return Movie.fromDetail(data as Map<String, dynamic>);
   }
 
+  /// TMDB community rating (separate call, may be slow).
+  /// GET /movies/{tmdb_id}/tmdb-rating -> { vote_average: double? }
+  static Future<double?> getTmdbRating(int tmdbId) async {
+    final data = await _api.get('/movies/$tmdbId/tmdb-rating');
+    final va = (data as Map<String, dynamic>)['vote_average'];
+    return va != null ? (va as num).toDouble() : null;
+  }
+
   /// Tendances (source TMDB, mises en cache côté back).
   /// GET /movies/trending -> PagedMovies { results: [MovieSummary] }
   static Future<List<Movie>> getTrending() async {

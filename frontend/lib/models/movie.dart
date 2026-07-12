@@ -34,7 +34,7 @@ class Cast {
   Map<String, dynamic> toJson() => _$CastToJson(this);
 
   String get profileUrl {
-    if (profilePath == null) return 'https://via.placeholder.com/185x278?text=No+Image';
+    if (profilePath == null || profilePath!.isEmpty) return '';
     if (profilePath!.startsWith('http')) return profilePath!;
     return 'https://image.tmdb.org/t/p/w185$profilePath';
   }
@@ -243,14 +243,17 @@ class Movie {
     );
   }
 
+  static const _posterPlaceholder = 'https://via.placeholder.com/500x750?text=No+Poster';
+  static const _backdropPlaceholder = 'https://via.placeholder.com/1280x720?text=No+Backdrop';
+
   String get posterUrl {
-    if (posterPath == null) return 'https://via.placeholder.com/500x750?text=No+Poster';
+    if (posterPath == null || posterPath!.isEmpty) return _posterPlaceholder;
     if (posterPath!.startsWith('http')) return posterPath!;
     return 'https://image.tmdb.org/t/p/w500$posterPath';
   }
 
   String get backdropUrl {
-    if (backdropPath == null) return 'https://via.placeholder.com/1280x720?text=No+Backdrop';
+    if (backdropPath == null || backdropPath!.isEmpty) return _backdropPlaceholder;
     if (backdropPath!.startsWith('http')) return backdropPath!;
     return 'https://image.tmdb.org/t/p/w1280$backdropPath';
   }

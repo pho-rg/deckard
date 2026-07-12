@@ -286,70 +286,18 @@ class WatchlistScreenState extends State<WatchlistScreen> {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final movie = _movies[index];
-            return Stack(
+            return MovieCard(
               key: ValueKey(movie.id),
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: MovieCard(
-                    movie: movie,
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MovieDetailScreen(movie: movie),
-                        ),
-                      );
-                      if (mounted) reload();
-                    },
+              movie: movie,
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MovieDetailScreen(movie: movie),
                   ),
-                ),
-                // Titre + info de tri en overlay : sans ça, la grille n'affiche
-                // que des affiches et un changement de tri est invisible.
-                IgnorePointer(
-                  child: Container(
-                    alignment: Alignment.bottomLeft,
-                    padding: const EdgeInsets.fromLTRB(6, 16, 6, 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.85),
-                        ],
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          movie.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          _currentSort == SortOption.rating
-                              ? (movie.voteAverage ?? 0.0).toStringAsFixed(1)
-                              : (movie.releaseDate?.split('-').first ?? ''),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+                );
+                if (mounted) reload();
+              },
             );
           },
           childCount: _movies.length,

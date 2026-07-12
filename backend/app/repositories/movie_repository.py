@@ -1,4 +1,4 @@
-from sqlalchemy import case, func, or_, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.featured_movie import FeaturedMovie
@@ -93,51 +93,35 @@ class MovieRepository:
     def search(
         self, query: str, *, page: int = 1, page_size: int = 20
     ) -> tuple[list[Movie], int]:
-        """Full-catalogue search on localized title + original title.
+        """Full-catalogue search on localized titles (movie_content).
 
-        Ranked by textual relevance first (exact match, then prefix, then
-        plain substring) — NOT by vote_average/release_date. Most movies
-        have no Deckard community rating yet (null), so ordering by rating
-        alone pushed the actual searched-for movie behind unrelated ones
-        that happened to have a rating (e.g. searching "Interstellar" could
-        surface unrelated titles before the real movie).
+        Searches across all languages so "Interstellar", "Le Parrain",
+        "The Godfather" all work regardless of the user's locale.
+        Ranked by textual relevance (exact → prefix → substring), then
+        by vote_average / release_date as tiebreakers.
+        Deduplication via GROUP BY tmdb_id (a movie may match in several
+        languages).
         """
         q = query.strip()
         pattern = f"%{q}%"
         q_lower = q.lower()
-        match = or_(
-            MovieContent.title.ilike(pattern),
-            Movie.original_title.ilike(pattern),
-        )
+
+        match = MovieContent.title.ilike(pattern)
+
         relevance = case(
-            (
-                or_(
-                    func.lower(MovieContent.title) == q_lower,
-                    func.lower(Movie.original_title) == q_lower,
-                ),
-                0,
-            ),
-            (
-                or_(
-                    func.lower(MovieContent.title).like(f"{q_lower}%"),
-                    func.lower(Movie.original_title).like(f"{q_lower}%"),
-                ),
-                1,
-            ),
+            (func.lower(MovieContent.title) == q_lower, 0),
+            (func.lower(MovieContent.title).like(f"{q_lower}%"), 1),
             else_=2,
         )
 
-        # Best (lowest) relevance per movie — a title can match via several
-        # localized MovieContent rows.
+        # Best (lowest) relevance per movie.
         ranked = (
             select(
-                Movie.tmdb_id.label("tmdb_id"),
+                MovieContent.tmdb_id.label("tmdb_id"),
                 func.min(relevance).label("relevance"),
             )
-            .select_from(Movie)
-            .outerjoin(MovieContent, MovieContent.tmdb_id == Movie.tmdb_id)
             .where(match)
-            .group_by(Movie.tmdb_id)
+            .group_by(MovieContent.tmdb_id)
             .subquery()
         )
 
@@ -145,13 +129,28 @@ class MovieRepository:
         if total == 0:
             return [], 0
 
+        # Popularity proxy: number of cast entries. Well-known movies have
+        # far more cast members imported than obscure ones (e.g. Fight Club
+        # 1999 has 50+ cast vs a random documentary with 3).
+        cast_counts = (
+            select(
+                MovieCast.movie_id.label("mid"),
+                func.count().label("n"),
+            )
+            .where(MovieCast.movie_id.in_(select(ranked.c.tmdb_id)))
+            .group_by(MovieCast.movie_id)
+            .subquery()
+        )
+
         rows = (
             self.db.scalars(
                 select(Movie)
                 .join(ranked, ranked.c.tmdb_id == Movie.tmdb_id)
+                .outerjoin(cast_counts, cast_counts.c.mid == Movie.tmdb_id)
                 .options(*_SUMMARY_OPTIONS)
                 .order_by(
                     ranked.c.relevance.asc(),
+                    func.coalesce(cast_counts.c.n, 0).desc(),
                     Movie.vote_average.desc().nullslast(),
                     Movie.release_date.desc().nullslast(),
                     Movie.tmdb_id.desc(),
@@ -169,44 +168,39 @@ class MovieRepository:
     def search_persons(
         self, query: str, *, page: int = 1, page_size: int = 20
     ) -> tuple[list[Person], int]:
-        """Search the catalogue's persons (cast & crew) by name."""
-        pattern = f"%{query.strip()}%"
-        match = Person.name.ilike(pattern)
+        """Search the catalogue's persons (cast & crew) by name.
 
-        total = self.db.scalar(
-            select(func.count()).select_from(Person).where(match)
-        ) or 0
-        if total == 0:
-            return [], 0
+        Two-pass approach to stay fast on broad queries like "Christopher"
+        (tens of thousands of matches): fetch prefix matches first (most
+        relevant), then fill with substring matches if needed. No COUNT(*)
+        — the frontend doesn't paginate person results.
+        """
+        q = query.strip()
+        q_lower = q.lower()
 
-        # Popularity proxy: number of appearances (cast + crew) in our catalogue.
-        appearances = (
-            select(MovieCast.person_id.label("pid"))
-            .union_all(select(MovieCrew.person_id))
-            .subquery()
-        )
-        counts = (
-            select(
-                appearances.c.pid.label("pid"),
-                func.count().label("n"),
-            )
-            .group_by(appearances.c.pid)
-            .subquery()
-        )
-
-        rows = self.db.scalars(
+        # Pass 1: prefix matches ("Nolan ..." comes before "Christopher Nolan")
+        prefix = Person.name.ilike(f"{q}%")
+        rows = list(self.db.scalars(
             select(Person)
-            .outerjoin(counts, counts.c.pid == Person.tmdb_id)
-            .where(match)
-            .order_by(
-                func.coalesce(counts.c.n, 0).desc(),
-                Person.name.asc(),
-                Person.tmdb_id.asc(),
-            )
+            .where(prefix)
+            .order_by(Person.name.asc())
             .limit(page_size)
-            .offset((page - 1) * page_size)
-        ).all()
-        return list(rows), total
+        ).all())
+
+        if len(rows) < page_size:
+            # Pass 2: substring matches (excludes already-found ids)
+            existing_ids = [p.tmdb_id for p in rows]
+            substring = Person.name.ilike(f"%{q}%")
+            remaining = page_size - len(rows)
+            more = self.db.scalars(
+                select(Person)
+                .where(substring, Person.tmdb_id.notin_(existing_ids) if existing_ids else True)
+                .order_by(Person.name.asc())
+                .limit(remaining)
+            ).all()
+            rows.extend(more)
+
+        return rows, len(rows)
 
     def get_person(self, person_id: int) -> Person | None:
         return self.db.get(Person, person_id)

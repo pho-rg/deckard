@@ -23,16 +23,21 @@ class AppTheme {
       appBarTheme: const AppBarTheme(
         backgroundColor: background,
         elevation: 0,
+        centerTitle: false,
         titleTextStyle: TextStyle(
+          fontFamily: 'LemonMilk',
           color: textMain,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          letterSpacing: 1.5,
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: primaryPurple,
-        unselectedItemColor: textDim,
+        backgroundColor: Color(0xFF141320),
+        selectedItemColor: secondaryPurple,
+        unselectedItemColor: Color(0xFF555370),
+        selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+        unselectedLabelStyle: TextStyle(fontSize: 11, letterSpacing: 0.3),
+        elevation: 0,
       ),
     );
   }

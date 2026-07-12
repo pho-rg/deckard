@@ -52,25 +52,22 @@ class MovieService:
         movie = self.repo.get_full(tmdb_id)
         if movie is None:
             raise MovieNotFound(tmdb_id)
-        detail = presenter.movie_detail(movie, to_iso2(language))
-        # vote_average = note communautaire Deckard. Si aucune note Deckard
-        # (null), on récupère la note TMDB à la volée (non persistée en base).
-        if detail.vote_average is None:
-            detail.vote_average = self._tmdb_vote_average(tmdb_id, language)
-        return detail
+        return presenter.movie_detail(movie, to_iso2(language))
 
-    def _tmdb_vote_average(
-        self, tmdb_id: int, language: str
-    ) -> Decimal | None:
+    def get_tmdb_rating(self, tmdb_id: int, *, language: str = "fr-FR") -> Decimal | None:
+        """Fetch the TMDB community rating (separate from Deckard ratings).
+
+        Called from a dedicated endpoint so the movie detail response
+        is never blocked by TMDB latency.
+        """
         try:
             data = self.tmdb.movie(tmdb_id, language=language)
         except TMDBError:
-            # Fallback best-effort : on ne bloque pas la fiche si TMDB échoue.
             return None
         va = data.get("vote_average")
         if va is None:
             return None
-        # TMDB note is on 0-10 → on ramène à l'échelle 0-5 du front.
+        # TMDB 0-10 → Deckard 0-5
         return Decimal(str(round(float(va) / 2, 1)))
 
     def get_featured(self, *, language: str = "fr-FR") -> MovieDetailOut | None:

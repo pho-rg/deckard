@@ -37,8 +37,16 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   bool _isLiked = false;
   bool _isInWatchlist = false;
 
+  bool _isTogglingWatched = false;
+  bool _isTogglingFavorite = false;
+  bool _isTogglingWatchlist = false;
+  bool _isSubmittingRating = false;
+
   late Movie _movie;
   bool _isDataLoaded = false;
+  double? _tmdbRating;
+  bool _isTmdbRatingLoading = true;
+  bool _isReviewsLoading = true;
 
   @override
   void initState() {
@@ -51,25 +59,29 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Future<void> _loadAllData() async {
+    // Fire all requests in parallel but don't block on each other.
+    // Each updates the UI independently as it resolves, so the screen
+    // renders progressively instead of waiting for the slowest call.
+    _fetchDetail().whenComplete(() {
+      if (mounted) setState(() => _isDataLoaded = true);
+    });
+    _fetchUserState();
+    _fetchReviews();
+    _loadSimilarMovies();
+    _fetchTmdbRating();
+  }
+
+  Future<void> _fetchTmdbRating() async {
     try {
-      await Future.wait([
-        _fetchDetail(),
-        _fetchUserState(),
-        _fetchReviews(),
-        _loadSimilarMovies(),
-      ]);
+      final rating = await MovieService.getTmdbRating(_movie.id);
       if (mounted) {
         setState(() {
-          _isDataLoaded = true;
+          _tmdbRating = rating;
+          _isTmdbRatingLoading = false;
         });
       }
-    } catch (e) {
-      debugPrint('Error loading movie data: $e');
-      if (mounted) {
-        setState(() {
-          _isDataLoaded = true;
-        });
-      }
+    } catch (_) {
+      if (mounted) setState(() => _isTmdbRatingLoading = false);
     }
   }
 
@@ -84,9 +96,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
           _ratingDistribution = r.distribution
               .map((c) => maxCount > 0 ? c / maxCount : 0.0)
               .toList();
+          _isReviewsLoading = false;
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) setState(() => _isReviewsLoading = false);
+    }
   }
 
   Future<void> _fetchDetail() async {
@@ -363,6 +378,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white38, letterSpacing: 1.2),
           ),
           const SizedBox(height: 16),
+          if (_isReviewsLoading)
+            const SizedBox(
+              height: 60,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.secondaryPurple)),
+            )
+          else
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -399,15 +420,23 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
               ),
               const SizedBox(width: 20),
               Builder(builder: (_) {
-                final avg5raw = _movie.voteAverage;
+                // Prefer Deckard community rating, fall back to TMDB.
+                final avg5raw = _movie.voteAverage ?? _tmdbRating;
                 final avg5 = avg5raw ?? 0;
                 final halfStars = (avg5 * 2).round();
+                final isLoading = avg5raw == null && _isTmdbRatingLoading;
                 return Column(
                   children: [
-                    Text(
-                      avg5raw != null ? avg5raw.toStringAsFixed(1) : '—',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
+                    if (isLoading)
+                      const SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.secondaryPurple),
+                      )
+                    else
+                      Text(
+                        avg5raw != null ? avg5raw.toStringAsFixed(1) : '—',
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
                     Row(
                       children: List.generate(5, (i) {
                         final full = (i + 1) * 2;
@@ -528,6 +557,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                           await _toggleWatched();
                           setModalState(() {});
                         },
+                        isLoading: _isTogglingWatched,
                       ),
                       _buildModalAction(
                         _isLiked ? Icons.favorite : Icons.favorite_border,
@@ -537,6 +567,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                           await _toggleFavorite();
                           setModalState(() {});
                         },
+                        isLoading: _isTogglingFavorite,
                       ),
                       _buildModalAction(
                         _isInWatchlist ? Icons.schedule : Icons.history_toggle_off,
@@ -546,6 +577,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                           await _toggleWatchlist();
                           setModalState(() {});
                         },
+                        isLoading: _isTogglingWatchlist,
                       ),
                     ],
                   ),
@@ -575,8 +607,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () async {
+                        onPressed: _isSubmittingRating ? null : () async {
+                          setModalState(() {});
                           await _submitRating();
+                          setModalState(() {});
                           if (context.mounted) Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
@@ -585,7 +619,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: Text(l10n.submit, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        child: _isSubmittingRating
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Text(l10n.submit, style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -599,6 +635,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   }
 
   Future<void> _toggleFavorite() async {
+    if (_isTogglingFavorite) return;
+    setState(() => _isTogglingFavorite = true);
     final next = !_isLiked;
     try {
       if (next) {
@@ -606,11 +644,15 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       } else {
         await MovieService.removeFavorite(_movie.id);
       }
-      if (mounted) setState(() => _isLiked = next);
-    } catch (_) {}
+      if (mounted) setState(() { _isLiked = next; _isTogglingFavorite = false; });
+    } catch (_) {
+      if (mounted) setState(() => _isTogglingFavorite = false);
+    }
   }
 
   Future<void> _toggleWatchlist() async {
+    if (_isTogglingWatchlist) return;
+    setState(() => _isTogglingWatchlist = true);
     final next = !_isInWatchlist;
     try {
       if (next) {
@@ -618,11 +660,15 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       } else {
         await MovieService.removeFromWatchlist(_movie.id);
       }
-      if (mounted) setState(() => _isInWatchlist = next);
-    } catch (_) {}
+      if (mounted) setState(() { _isInWatchlist = next; _isTogglingWatchlist = false; });
+    } catch (_) {
+      if (mounted) setState(() => _isTogglingWatchlist = false);
+    }
   }
 
   Future<void> _toggleWatched() async {
+    if (_isTogglingWatched) return;
+    setState(() => _isTogglingWatched = true);
     final next = !_isWatched;
     try {
       if (next) {
@@ -630,24 +676,38 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       } else {
         await MovieService.unmarkWatched(_movie.id);
       }
-      if (mounted) setState(() => _isWatched = next);
-    } catch (_) {}
+      if (mounted) setState(() { _isWatched = next; _isTogglingWatched = false; });
+    } catch (_) {
+      if (mounted) setState(() => _isTogglingWatched = false);
+    }
   }
 
   Future<void> _submitRating() async {
+    if (_isSubmittingRating) return;
+    setState(() => _isSubmittingRating = true);
     try {
-      await MovieService.setRating(
-        _movie.id,
-        _userRating,
-        _reviewController.text.trim().isEmpty ? null : _reviewController.text.trim(),
-      );
-      await Future.wait([_fetchDetail(), _fetchReviews(), _fetchUserState()]);
+      final futures = <Future>[
+        MovieService.setRating(
+          _movie.id,
+          _userRating,
+          _reviewController.text.trim().isEmpty ? null : _reviewController.text.trim(),
+        ),
+      ];
+      if (!_isWatched) {
+        futures.add(MovieService.markWatched(_movie.id));
+      }
+      await Future.wait(futures);
+      if (mounted) setState(() => _isWatched = true);
+      // Refresh reviews + user state in parallel (no need to refetch movie detail)
+      _fetchReviews();
+      _fetchUserState();
     } catch (_) {}
+    if (mounted) setState(() => _isSubmittingRating = false);
   }
 
-  Widget _buildModalAction(IconData icon, String label, bool isActive, VoidCallback onTap) {
+  Widget _buildModalAction(IconData icon, String label, bool isActive, VoidCallback onTap, {bool isLoading = false}) {
     return InkWell(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       borderRadius: BorderRadius.circular(8),
       splashColor: AppTheme.secondaryPurple.withValues(alpha: 0.3),
       highlightColor: AppTheme.secondaryPurple.withValues(alpha: 0.1),
@@ -655,11 +715,17 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
         width: 80,
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 32,
-              color: isActive ? AppTheme.secondaryPurple : Colors.white70,
-            ),
+            if (isLoading)
+              const SizedBox(
+                width: 32, height: 32,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.secondaryPurple),
+              )
+            else
+              Icon(
+                icon,
+                size: 32,
+                color: isActive ? AppTheme.secondaryPurple : Colors.white70,
+              ),
             const SizedBox(height: 8),
             Text(
               label,
@@ -954,7 +1020,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white38, letterSpacing: 1.2),
           ),
           const SizedBox(height: 25),
-          if (reviewMaps.isEmpty)
+          if (_isReviewsLoading)
+            const Center(child: Padding(
+              padding: EdgeInsets.only(bottom: 8.0),
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.secondaryPurple),
+            ))
+          else if (reviewMaps.isEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: Text(l10n.noReviewsYet, style: const TextStyle(color: Colors.white38, fontSize: 13)),
