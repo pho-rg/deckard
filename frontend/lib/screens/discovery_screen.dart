@@ -140,8 +140,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
                 const SizedBox(height: 30),
 
-                // Section: For You (recommandations, en grille)
-                if (forYou.isNotEmpty) _buildGridSection(l10n.forYou, forYou),
+                // Section: For You (recommandations)
+                if (forYou.isNotEmpty) _buildHorizontalSection(l10n.forYou, forYou),
 
                 const SizedBox(height: 20),
               ],
@@ -301,52 +301,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     );
   }
 
-  /// Section en grille (comme la page Watchlist) — posters cliquables, 3 colonnes.
-  Widget _buildGridSection(String title, List<Movie> movies) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              color: Colors.white70,
-            ),
-          ),
-        ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 2 / 3,
-            crossAxisSpacing: 8.0,
-            mainAxisSpacing: 8.0,
-          ),
-          itemCount: movies.length,
-          itemBuilder: (context, index) {
-            return MovieCard(
-              movie: movies[index],
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        MovieDetailScreen(movie: movies[index]),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ],
-    );
-  }
 
   void _showLanguageDialog(BuildContext context, LocaleProvider localeProvider, AppLocalizations l10n) {
     showDialog(

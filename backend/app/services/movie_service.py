@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.integrations.tmdb import TMDBClient, TMDBError, get_tmdb_client
 from app.repositories.movie_repository import MovieRepository
 from app.repositories.rating_repository import RatingRepository
+from app.repositories.vector_repository import VectorRepository
 from app.schemas.movie import (
     MovieCard,
     MovieDetailOut,
@@ -39,6 +40,7 @@ class MovieService:
         self._tmdb = tmdb
         self.repo = MovieRepository(db)
         self.ratings = RatingRepository(db)
+        self.vectors = VectorRepository(db)
 
     @property
     def tmdb(self) -> TMDBClient:
@@ -103,9 +105,18 @@ class MovieService:
     def list_similar(
         self, tmdb_id: int, *, limit: int = 10, language: str = "fr-FR"
     ) -> list[MovieCard]:
-        # V1: random movies. Will be backed by an AI model later.
         iso = to_iso2(language)
-        movies = self.repo.random_similar(tmdb_id, limit=limit)
+
+        # pgvector similarity — fallback to random if movie not in vecteur table
+        similar_ids = self.vectors.similar(tmdb_id, limit=limit)
+        if similar_ids:
+            movies_unord = self.repo.list_by_ids(similar_ids)
+            by_id = {m.tmdb_id: m for m in movies_unord}
+            # Preserve vector similarity order; skip ids not in our catalogue
+            movies = [by_id[i] for i in similar_ids if i in by_id]
+        else:
+            movies = self.repo.random_similar(tmdb_id, limit=limit)
+
         return [presenter.movie_card(m, iso) for m in movies]
 
     def get_movie_ratings(self, tmdb_id: int) -> MovieRatingsOut:

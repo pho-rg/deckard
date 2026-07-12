@@ -30,6 +30,9 @@ class Settings(BaseSettings):
 
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000"]
 
+    # Recommendation engine: "svd" (S3 matrix-factorisation model) or "pgvector"
+    reco_engine: str = "pgvector"
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_cors(cls, v):
