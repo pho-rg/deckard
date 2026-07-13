@@ -58,6 +58,26 @@ class AuthService {
     await _api.post('/users/me/favorites/batch', {'tmdb_ids': tmdbIds});
   }
 
+  /// Rafraîchit le token d'accès via le refresh token stocké.
+  /// Branché sur ApiService.onRefreshToken (cf. main()) : appelé
+  /// automatiquement par ApiService quand une requête reçoit un 401, avant
+  /// d'abandonner la session. Retourne false si aucun refresh token n'est
+  /// stocké ou s'il est lui-même invalide/expiré (déconnexion inévitable).
+  static Future<bool> refreshTokens() async {
+    final refresh = await _storage.read(key: _refreshKey);
+    if (refresh == null) return false;
+    try {
+      final data = await _api.post('/auth/refresh', {'refresh_token': refresh});
+      await _persistTokens(
+        data['access_token'] as String,
+        data['refresh_token'] as String,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Efface les tokens et réinitialise l'API.
   static Future<void> logout() async {
     final refresh = await _storage.read(key: _refreshKey);

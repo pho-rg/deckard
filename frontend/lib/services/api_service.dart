@@ -20,11 +20,18 @@ class ApiService {
   // Renseigné après login : ApiService.token = response['access_token']
   static String? token;
 
-  /// Appelé quand l'API renvoie 401 (token absent/expiré/invalide).
-  /// Branché dans main() pour purger la session et renvoyer vers le login.
+  /// Appelé quand l'API renvoie 401 et que le refresh du token a lui-même
+  /// échoué (session vraiment morte). Branché dans main() pour purger la
+  /// session et renvoyer vers le login.
   /// NB : seul 401 (non authentifié) le déclenche — 403 (accès interdit, ex.
   /// profil d'un non-ami) est une autorisation refusée, pas une session morte.
   static void Function()? onUnauthorized;
+
+  /// Tente de rafraîchir le token d'accès (branché sur AuthService.refreshTokens
+  /// dans main()). Retourne true si un nouveau token a été obtenu.
+  static Future<bool> Function()? onRefreshToken;
+
+  static Future<bool>? _refreshLock;
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
@@ -37,50 +44,75 @@ class ApiService {
   /// message d'erreur avec) juste au moment où celui-ci devrait s'afficher.
   static const _unauthenticatedEndpoints = {'/auth/login', '/auth/register'};
 
+  /// Endpoints qu'un 401 ne doit jamais faire passer par le flow de refresh
+  /// (login/register : pas de session à rafraîchir ; refresh : éviter une
+  /// boucle infinie si le refresh token lui-même est invalide/expiré).
+  static const _noRefreshEndpoints = {
+    '/auth/login',
+    '/auth/register',
+    '/auth/refresh',
+  };
+
   // Sans ça, une requête bloquée (back lent, connexion qui traîne) laisse
   // l'appelant en attente indéfiniment — ex. la recherche qui tourne en
   // boucle sans jamais afficher de résultat ni d'erreur.
   static const _timeout = Duration(seconds: 15);
 
-  Future<dynamic> get(String endpoint) async {
-    final response = await http
-        .get(Uri.parse('$baseUrl$endpoint'), headers: _headers)
-        .timeout(_timeout);
-    return _handle(response, endpoint);
+  Future<dynamic> get(String endpoint) {
+    return _send(
+      endpoint,
+      () => http
+          .get(Uri.parse('$baseUrl$endpoint'), headers: _headers)
+          .timeout(_timeout),
+    );
   }
 
-  Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
-    final response = await http
-        .post(
-          Uri.parse('$baseUrl$endpoint'),
-          headers: _headers,
-          body: json.encode(body),
-        )
-        .timeout(_timeout);
-    return _handle(response, endpoint);
+  Future<dynamic> post(String endpoint, Map<String, dynamic> body) {
+    return _send(
+      endpoint,
+      () => http
+          .post(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: _headers,
+            body: json.encode(body),
+          )
+          .timeout(_timeout),
+    );
   }
 
-  Future<dynamic> put(String endpoint, Map<String, dynamic> body) async {
-    final response = await http
-        .put(
-          Uri.parse('$baseUrl$endpoint'),
-          headers: _headers,
-          body: json.encode(body),
-        )
-        .timeout(_timeout);
-    return _handle(response, endpoint);
+  Future<dynamic> put(String endpoint, Map<String, dynamic> body) {
+    return _send(
+      endpoint,
+      () => http
+          .put(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: _headers,
+            body: json.encode(body),
+          )
+          .timeout(_timeout),
+    );
   }
 
-  Future<dynamic> delete(String endpoint) async {
-    final response = await http
-        .delete(Uri.parse('$baseUrl$endpoint'), headers: _headers)
-        .timeout(_timeout);
-    return _handle(response, endpoint);
+  Future<dynamic> delete(String endpoint) {
+    return _send(
+      endpoint,
+      () => http
+          .delete(Uri.parse('$baseUrl$endpoint'), headers: _headers)
+          .timeout(_timeout),
+    );
   }
 
-  /// Vérifie le statut HTTP et décode le corps JSON.
-  /// En cas d'erreur, remonte le message `detail` renvoyé par FastAPI.
-  dynamic _handle(http.Response response, String endpoint) {
+  /// Envoie la requête et décode le corps JSON.
+  /// Sur 401 (hors endpoints publics/refresh), tente un refresh du token puis
+  /// rejoue la requête une seule fois avant d'abandonner et de purger la
+  /// session — évite qu'un access token expiré (durée de vie 1h) ne déconnecte
+  /// l'utilisateur alors que son refresh token (30j) est toujours valide.
+  Future<dynamic> _send(
+    String endpoint,
+    Future<http.Response> Function() send, {
+    bool isRetry = false,
+  }) async {
+    final response = await send();
     final status = response.statusCode;
 
     if (status >= 200 && status < 300) {
@@ -88,10 +120,15 @@ class ApiService {
       return json.decode(utf8.decode(response.bodyBytes));
     }
 
+    if (status == 401 && !isRetry && !_noRefreshEndpoints.contains(endpoint)) {
+      final refreshed = await _refreshAccessToken();
+      if (refreshed) return _send(endpoint, send, isRetry: true);
+    }
+
     final message = _extractDetail(response);
     if (status == 401) {
       if (!_unauthenticatedEndpoints.contains(endpoint)) {
-        // Session invalide → purge + redirection (branchée dans main()).
+        // Session invalide (refresh échoué ou non tenté) → purge + redirection.
         onUnauthorized?.call();
       }
       throw ApiException(message, statusCode: status, isAuth: true);
@@ -100,6 +137,14 @@ class ApiService {
       throw ApiException(message, statusCode: status, isAuth: true);
     }
     throw ApiException(message, statusCode: status);
+  }
+
+  /// Mutualise les refresh concurrents : si plusieurs requêtes expirent en
+  /// même temps (ex. plusieurs écrans en polling), une seule tentative de
+  /// refresh est faite ; les autres attendent son résultat.
+  Future<bool> _refreshAccessToken() {
+    return _refreshLock ??= (onRefreshToken?.call() ?? Future.value(false))
+        .whenComplete(() => _refreshLock = null);
   }
 
   /// FastAPI renvoie {"detail": "..."} (string) ou une liste d'erreurs de

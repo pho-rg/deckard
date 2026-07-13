@@ -16,7 +16,11 @@ final navigatorKey = GlobalKey<NavigatorState>();
 bool _handlingUnauthorized = false;
 
 void main() {
-  // Token expiré/invalide (401) → purge la session et renvoie au login.
+  // Token d'accès expiré (401) → tente un refresh silencieux avant de
+  // déconnecter (cf. ApiService._send).
+  ApiService.onRefreshToken = AuthService.refreshTokens;
+
+  // Refresh token lui-même invalide/expiré → purge la session et renvoie au login.
   ApiService.onUnauthorized = () async {
     if (_handlingUnauthorized) return;
     _handlingUnauthorized = true;
