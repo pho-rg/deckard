@@ -50,12 +50,17 @@ class MovieRepository:
 
     def list_by_ids(self, tmdb_ids: list[int]) -> list[Movie]:
         # Fetch movies by tmdb_id, summary-eager-loaded. DB order (caller reorders).
+        # Excludes posterless movies — this feeds recommendations/similar/onboarding
+        # card grids, never the search results (see `search` below).
         if not tmdb_ids:
             return []
         return list(
             self.db.scalars(
                 select(Movie)
-                .where(Movie.tmdb_id.in_(tmdb_ids))
+                .where(
+                    Movie.tmdb_id.in_(tmdb_ids),
+                    Movie.poster_path.isnot(None),
+                )
                 .options(*_SUMMARY_OPTIONS)
             ).unique()
         )
@@ -213,6 +218,7 @@ class MovieRepository:
         return list(
             self.db.scalars(
                 select(Movie)
+                .where(Movie.poster_path.isnot(None))
                 .order_by(func.random())
                 .limit(limit)
                 .options(*_SUMMARY_OPTIONS)
@@ -225,7 +231,10 @@ class MovieRepository:
         return list(
             self.db.scalars(
                 select(Movie)
-                .where(Movie.tmdb_id != tmdb_id)
+                .where(
+                    Movie.tmdb_id != tmdb_id,
+                    Movie.poster_path.isnot(None),
+                )
                 .order_by(func.random())
                 .limit(limit)
                 .options(*_SUMMARY_OPTIONS)
@@ -245,7 +254,10 @@ class MovieRepository:
         rows = (
             self.db.scalars(
                 select(Movie)
-                .where(Movie.tmdb_id.in_(select(movie_ids.c.movie_id)))
+                .where(
+                    Movie.tmdb_id.in_(select(movie_ids.c.movie_id)),
+                    Movie.poster_path.isnot(None),
+                )
                 .options(*_SUMMARY_OPTIONS)
                 .order_by(
                     Movie.release_date.desc().nullslast(), Movie.tmdb_id.desc()

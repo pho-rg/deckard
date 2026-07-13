@@ -62,13 +62,17 @@ class _UserMovieFlagRepository:
         return result.rowcount > 0
 
     def list_movies(self, user_id: uuid.UUID) -> list[Movie]:
-        # Return the user's movies, newest first
+        # Return the user's movies, newest first (posterless movies excluded
+        # from these card grids, same as recommendations/similar).
         ts_col = getattr(self.model, self.timestamp_col_name)
         return list(
             self.db.scalars(
                 select(Movie)
                 .join(self.model, self.model.movie_id == Movie.tmdb_id)
-                .where(self.model.user_id == user_id)
+                .where(
+                    self.model.user_id == user_id,
+                    Movie.poster_path.isnot(None),
+                )
                 .order_by(ts_col.desc())
                 .options(*_CARD_OPTIONS)
             )
@@ -100,7 +104,10 @@ class WatchedRepository(_UserMovieFlagRepository):
         rows = self.db.execute(
             select(Movie)
             .join(WatchedItem, WatchedItem.movie_id == Movie.tmdb_id)
-            .where(WatchedItem.user_id.in_(user_ids))
+            .where(
+                WatchedItem.user_id.in_(user_ids),
+                Movie.poster_path.isnot(None),
+            )
             .group_by(Movie.tmdb_id)
             .order_by(latest.desc())
             .limit(limit)
