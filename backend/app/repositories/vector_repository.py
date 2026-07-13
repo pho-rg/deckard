@@ -8,6 +8,9 @@ Two public methods:
 * ``similar`` — given one movie, return its N nearest neighbours.
 * ``personal`` — given a list of liked/rated movie IDs, aggregate
   multi-vector neighbours and return top-N recommendations.
+
+Poster filtering is NOT done here (JOINs kill the IVFFlat index perf).
+The service layer filters out movies without poster after fetching.
 """
 
 from __future__ import annotations
@@ -32,9 +35,9 @@ class VectorRepository:
     # ------------------------------------------------------------------
 
     def similar(self, tmdb_id: int, *, limit: int = 10) -> list[int]:
-        """Return *limit* tmdb_ids most similar to *tmdb_id* using cosine
-        distance (``<=>``) on ``full_vector``.  Returns an empty list when
-        the movie has no vector (not in the vecteur table)."""
+        """Return tmdb_ids most similar to *tmdb_id* using cosine distance.
+        Fetches extra candidates so the service layer can filter posters
+        and still return enough results."""
 
         row = self.db.execute(
             text("SELECT full_vector FROM public.vecteur WHERE movie_id = :mid"),
@@ -46,15 +49,13 @@ class VectorRepository:
 
         rows = self.db.execute(
             text("""
-                SELECT v.movie_id
-                FROM public.vecteur v
-                JOIN movies m ON m.tmdb_id = v.movie_id
-                WHERE v.movie_id != :mid
-                  AND m.poster_path IS NOT NULL
-                ORDER BY v.full_vector <=> CAST(:vec AS vector)
+                SELECT movie_id
+                FROM public.vecteur
+                WHERE movie_id != :mid
+                ORDER BY full_vector <=> CAST(:vec AS vector)
                 LIMIT :lim
             """),
-            {"mid": tmdb_id, "vec": row[0], "lim": limit},
+            {"mid": tmdb_id, "vec": row[0], "lim": limit * 2},
         ).fetchall()
 
         return [r[0] for r in rows]
@@ -70,8 +71,8 @@ class VectorRepository:
         limit: int = 20,
         top_n_per_query: int = 20,
     ) -> list[int]:
-        """Build personal recommendations from the user's positive signals
-        (favorites + high ratings) using multi-vector aggregation.
+        """Build personal recommendations from the user's 10 most recent
+        positive signals (favorites + ratings >= 8/10).
 
         For each liked movie we fetch its *top_n_per_query* nearest
         neighbours, then rank candidates by a weighted combination of
@@ -116,7 +117,6 @@ class VectorRepository:
         seen_ids = {r[0] for r in seen_rows}
 
         # --- multi-vector aggregation ---
-        # {movie_id: [distance1, distance2, ...]}
         candidates: dict[int, list[float]] = {}
 
         for mid in liked_ids:
@@ -129,13 +129,11 @@ class VectorRepository:
 
             neighbours = self.db.execute(
                 text("""
-                    SELECT v.movie_id,
-                           (v.full_vector <=> CAST(:vec AS vector)) AS dist
-                    FROM public.vecteur v
-                    JOIN movies m ON m.tmdb_id = v.movie_id
-                    WHERE v.movie_id != ALL(:excluded)
-                      AND m.poster_path IS NOT NULL
-                    ORDER BY v.full_vector <=> CAST(:vec AS vector)
+                    SELECT movie_id,
+                           (full_vector <=> CAST(:vec AS vector)) AS dist
+                    FROM public.vecteur
+                    WHERE movie_id != ALL(:excluded)
+                    ORDER BY full_vector <=> CAST(:vec AS vector)
                     LIMIT :lim
                 """),
                 {
@@ -152,7 +150,6 @@ class VectorRepository:
             return []
 
         # --- scoring: avg_similarity * 0.7  +  frequency_norm * 0.3 ---
-        # Lower distance = more similar, so we invert: similarity = 1 - dist
         n_queries = len(liked_ids)
         scored: list[tuple[int, float]] = []
         for mid, dists in candidates.items():
@@ -164,4 +161,5 @@ class VectorRepository:
             scored.append((mid, score))
 
         scored.sort(key=lambda x: x[1], reverse=True)
-        return [mid for mid, _ in scored[:limit]]
+        # Return extra so the service layer can filter posters
+        return [mid for mid, _ in scored[:limit * 2]]

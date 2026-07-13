@@ -112,8 +112,9 @@ class MovieService:
         if similar_ids:
             movies_unord = self.repo.list_by_ids(similar_ids)
             by_id = {m.tmdb_id: m for m in movies_unord}
-            # Preserve vector similarity order; skip ids not in our catalogue
-            movies = [by_id[i] for i in similar_ids if i in by_id]
+            # Preserve vector similarity order; filter out movies without poster
+            movies = [by_id[i] for i in similar_ids
+                      if i in by_id and by_id[i].poster_path][:limit]
         else:
             movies = self.repo.random_similar(tmdb_id, limit=limit)
 

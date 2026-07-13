@@ -113,7 +113,33 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.wifi_off, color: Colors.white24, size: 48),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.noMoviesAvailable,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white54, fontSize: 15),
+                    ),
+                    const SizedBox(height: 20),
+                    OutlinedButton.icon(
+                      onPressed: () => setState(_loadData),
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: Text(l10n.retry),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.secondaryPurple,
+                        side: const BorderSide(color: AppTheme.primaryPurple),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(child: Text(l10n.noMoviesAvailable));
           }

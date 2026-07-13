@@ -13,7 +13,6 @@ import '../theme/app_theme.dart';
 import 'match_lobby_screen.dart';
 import 'movie_detail_screen.dart';
 import 'profile_screen.dart';
-import 'qr_scanner_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -251,7 +250,7 @@ class _MatchBanner extends StatelessWidget {
               const SizedBox(width: 10),
               OutlinedButton.icon(
                 onPressed: () => _joinMatch(context),
-                icon: const Icon(Icons.qr_code_scanner, size: 18,
+                icon: const Icon(Icons.group_add, size: 18,
                     color: AppTheme.secondaryPurple),
                 label: Text(l10n.joinAMatch,
                     style:
@@ -367,27 +366,6 @@ class _JoinMatchDialogState extends State<_JoinMatchDialog> {
                   borderSide: const BorderSide(color: Colors.white12)),
             ),
             maxLength: 6,
-          ),
-          const SizedBox(height: 4),
-          OutlinedButton.icon(
-            onPressed: () async {
-              final code = await Navigator.push<String>(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const QrScannerScreen(),
-                    fullscreenDialog: true),
-              );
-              if (code != null && mounted) {
-                setState(() => _ctrl.text = code.toUpperCase());
-              }
-            },
-            icon: const Icon(Icons.qr_code_scanner, size: 18),
-            label: Text(l10n.scanQrCode),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.secondaryPurple,
-              side: const BorderSide(color: AppTheme.primaryPurple),
-              minimumSize: const Size(double.infinity, 42),
-            ),
           ),
         ],
       ),

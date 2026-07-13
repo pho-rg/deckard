@@ -137,7 +137,7 @@ class _ScannerError extends StatelessWidget {
               const Icon(Icons.error_outline, color: Colors.white54, size: 40),
               const SizedBox(height: 16),
               Text(
-                error.errorCode.message,
+                '${error.errorCode} — ${error.errorDetails?.message ?? error.errorCode.message}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white, fontSize: 15),
               ),

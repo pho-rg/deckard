@@ -47,6 +47,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
   double? _tmdbRating;
   bool _isTmdbRatingLoading = true;
   bool _isReviewsLoading = true;
+  bool _isSimilarLoading = true;
 
   @override
   void initState() {
@@ -136,9 +137,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
       if (mounted) {
         setState(() {
           _similarMovies = movies;
+          _isSimilarLoading = false;
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) setState(() => _isSimilarLoading = false);
+    }
   }
 
   void _onScroll() {
@@ -1105,26 +1109,37 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white38, letterSpacing: 1.2),
           ),
         ),
-        SizedBox(
-          height: 150,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: _similarMovies.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                child: MovieCard(
-                  movie: _similarMovies[index],
-                  width: 90,
-                  onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: _similarMovies[index])));
-                  },
-                ),
-              );
-            },
+        if (_isSimilarLoading)
+          const SizedBox(
+            height: 150,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.secondaryPurple)),
+          )
+        else if (_similarMovies.isEmpty)
+          const SizedBox(
+            height: 150,
+            child: Center(child: Text('—', style: TextStyle(color: Colors.white38))),
+          )
+        else
+          SizedBox(
+            height: 150,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: _similarMovies.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: MovieCard(
+                    movie: _similarMovies[index],
+                    width: 90,
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: _similarMovies[index])));
+                    },
+                  ),
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }

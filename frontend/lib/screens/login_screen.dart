@@ -63,12 +63,6 @@ class _LoginScreenState extends State<LoginScreen> {
               _passwordCtrl.text,
             );
       if (mounted) {
-        // Synchronise l'UI sur la langue du compte (cf. AuthGate au
-        // démarrage pour la même logique côté restauration de session).
-        context.read<LocaleProvider>().setLocale(
-              LocaleProvider.localeFromLanguageTag(
-                  AuthService.currentUserLanguage),
-            );
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(

@@ -88,19 +88,9 @@ class AuthGate extends StatelessWidget {
         }
         final isLoggedIn = snapshot.data ?? false;
         if (isLoggedIn) {
-          // Synchronise l'UI sur la langue du compte (cf. AuthService.
-          // currentUserLanguage) : LocaleProvider démarre toujours en
-          // anglais par défaut, indépendamment de ce qui est stocké côté
-          // serveur pour ce compte. Différé après la frame en cours pour ne
-          // pas déclencher de rebuild pendant ce build().
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              context.read<LocaleProvider>().setLocale(
-                    LocaleProvider.localeFromLanguageTag(
-                        AuthService.currentUserLanguage),
-                  );
-            }
-          });
+          // Synchronise la langue du contenu côté serveur sur l'anglais
+          // (défaut de l'app) pour que titres/synopsis arrivent en anglais.
+          // L'utilisateur peut changer via le language picker dans Discover.
         }
         return isLoggedIn ? const MainNavigation() : const LoginScreen();
       },

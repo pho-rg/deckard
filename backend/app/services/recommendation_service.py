@@ -48,7 +48,9 @@ class RecommendationService:
 
         movies_unord = self.movies.list_by_ids(recommended_ids)
         by_id = {m.tmdb_id: m for m in movies_unord}
-        ordered = [by_id[tid] for tid in recommended_ids if tid in by_id]
+        # Filter out movies without poster, cap to requested limit
+        ordered = [by_id[tid] for tid in recommended_ids
+                   if tid in by_id and by_id[tid].poster_path][:limit]
         return [presenter.movie_card(m, iso) for m in ordered]
 
     def from_friends(self, user: User, *, limit: int = 10) -> list[MovieCard]:
