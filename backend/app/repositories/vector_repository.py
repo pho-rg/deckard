@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import text, union_all, select
+from sqlalchemy import func, text, union_all, select
 from sqlalchemy.orm import Session
 
 from app.models.favorite import Favorite
@@ -46,10 +46,12 @@ class VectorRepository:
 
         rows = self.db.execute(
             text("""
-                SELECT movie_id
-                FROM public.vecteur
-                WHERE movie_id != :mid
-                ORDER BY full_vector <=> CAST(:vec AS vector)
+                SELECT v.movie_id
+                FROM public.vecteur v
+                JOIN movies m ON m.tmdb_id = v.movie_id
+                WHERE v.movie_id != :mid
+                  AND m.poster_path IS NOT NULL
+                ORDER BY v.full_vector <=> CAST(:vec AS vector)
                 LIMIT :lim
             """),
             {"mid": tmdb_id, "vec": row[0], "lim": limit},
@@ -79,25 +81,29 @@ class VectorRepository:
         Returns up to *limit* tmdb_ids, best first.
         """
 
-        # --- liked movie ids (favorites + ratings >= 7/10 i.e. 3.5 stars) ---
-        fav_ids = (
-            select(Favorite.movie_id.label("movie_id"))
-            .where(Favorite.user_id == user_id)
-        )
-        high_rated_ids = (
-            select(Rating.movie_id.label("movie_id"))
-            .where(Rating.user_id == user_id, Rating.rating >= 7)
-        )
-        liked_q = union_all(fav_ids, high_rated_ids).subquery()
-        liked_rows = self.db.execute(select(liked_q.c.movie_id)).fetchall()
-        liked_ids = list({r[0] for r in liked_rows})
+        # --- 10 most recent liked movies (favorites + ratings >= 8/10) ---
+        fav = select(
+            Favorite.movie_id.label("movie_id"),
+            Favorite.created_at.label("interaction_date"),
+        ).where(Favorite.user_id == user_id)
+
+        high_rated = select(
+            Rating.movie_id.label("movie_id"),
+            Rating.updated_at.label("interaction_date"),
+        ).where(Rating.user_id == user_id, Rating.rating >= 8)
+
+        combined = union_all(fav, high_rated).subquery()
+
+        liked_rows = self.db.execute(
+            select(combined.c.movie_id)
+            .group_by(combined.c.movie_id)
+            .order_by(func.max(combined.c.interaction_date).desc())
+            .limit(10)
+        ).fetchall()
+        liked_ids = [r[0] for r in liked_rows]
 
         if not liked_ids:
             return []
-
-        # Cap the number of seed movies to avoid too many vector scans
-        if len(liked_ids) > 10:
-            liked_ids = liked_ids[:10]
 
         # --- movies the user already interacted with (to exclude) ---
         seen_q = union_all(
@@ -123,11 +129,13 @@ class VectorRepository:
 
             neighbours = self.db.execute(
                 text("""
-                    SELECT movie_id,
-                           (full_vector <=> CAST(:vec AS vector)) AS dist
-                    FROM public.vecteur
-                    WHERE movie_id != ALL(:excluded)
-                    ORDER BY full_vector <=> CAST(:vec AS vector)
+                    SELECT v.movie_id,
+                           (v.full_vector <=> CAST(:vec AS vector)) AS dist
+                    FROM public.vecteur v
+                    JOIN movies m ON m.tmdb_id = v.movie_id
+                    WHERE v.movie_id != ALL(:excluded)
+                      AND m.poster_path IS NOT NULL
+                    ORDER BY v.full_vector <=> CAST(:vec AS vector)
                     LIMIT :lim
                 """),
                 {
