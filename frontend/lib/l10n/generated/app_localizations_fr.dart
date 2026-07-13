@@ -254,7 +254,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get startAMatch => 'Créer un match';
 
   @override
-  String get joinAMatch => 'Joindre';
+  String get joinAMatch => 'Rejoindre';
 
   @override
   String get popularWithFriends => 'POPULAIRE CHEZ VOS AMIS';
