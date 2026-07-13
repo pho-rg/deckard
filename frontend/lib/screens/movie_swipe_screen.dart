@@ -163,7 +163,7 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
 
     return PopScope(
       canPop: false,
-      onPopInvokedWithPop: (didPop, result) {
+      onPopInvoked: (didPop) {
         if (didPop) return;
         _leaveAndPop();
       },
@@ -274,7 +274,7 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
           opacity: _fadeAnim,
           child: SlideTransition(
             position: _slideAnim,
-            child: _buildCard(current, depth: 0, withInfo: true, l10n: l10n),
+            child: _buildCard(current, depth: 0),
           ),
         ),
       ],
@@ -284,8 +284,6 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
   Widget _buildCard(
     ProfileMovieCard movie, {
     required int depth,
-    bool withInfo = false,
-    AppLocalizations? l10n,
   }) {
     final scale = 1.0 - depth * 0.04;
     final vertOffset = depth * 12.0;
@@ -326,56 +324,6 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
                     color: Colors.grey[850],
                     child: const Icon(Icons.movie,
                         color: Colors.white24, size: 60),
-                  ),
-
-                // Gradient + info overlay (only on front card)
-                if (withInfo && l10n != null)
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.9),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              if (movie.year.isNotEmpty)
-                                Text(
-                                  movie.year,
-                                  style: const TextStyle(
-                                      color: Colors.white60,
-                                      fontSize: 13),
-                                ),
-                              if (movie.voteAverage != null) ...[
-                                const SizedBox(width: 12),
-                                const Icon(Icons.star,
-                                    color: AppTheme.secondaryPurple,
-                                    size: 13),
-                                const SizedBox(width: 3),
-                                Text(
-                                  movie.voteAverage!.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                      color: Colors.white60,
-                                      fontSize: 13),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
               ],
             ),

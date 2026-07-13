@@ -115,7 +115,7 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
 
     return PopScope(
       canPop: false,
-      onPopInvokedWithPop: (didPop, result) {
+      onPopInvoked: (didPop) {
         if (didPop) return;
         _leaveAndPop();
       },
