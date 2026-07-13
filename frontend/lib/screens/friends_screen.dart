@@ -273,24 +273,28 @@ class _MatchBanner extends StatelessWidget {
   }
 
   void _joinMatch(BuildContext context) {
-    showDialog(
+    // Le dialog renvoie la session obtenue (ou null s'il a été annulé) : on
+    // n'ouvre l'écran de match qu'une fois le dialog réellement refermé —
+    // pousser l'écran avant de pop() le dialog referme sinon l'écran qu'on
+    // vient d'ouvrir au lieu du dialog (même Navigator → pop = route du
+    // dessus, qui devient l'écran fraîchement poussé).
+    showDialog<MatchSession>(
       context: context,
       builder: (_) => _JoinMatchDialog(
         l10n: AppLocalizations.of(context)!,
-        onJoin: (code) async {
-          final session = await service.joinMatch(code);
-          if (context.mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    MatchLobbyScreen(session: session, service: service),
-              ),
-            );
-          }
-        },
+        onJoin: (code) => service.joinMatch(code),
       ),
-    );
+    ).then((session) {
+      if (session != null && context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                MatchLobbyScreen(session: session, service: service),
+          ),
+        );
+      }
+    });
   }
 }
 
@@ -300,7 +304,7 @@ class _MatchBanner extends StatelessWidget {
 
 class _JoinMatchDialog extends StatefulWidget {
   final AppLocalizations l10n;
-  final Future<void> Function(String code) onJoin;
+  final Future<MatchSession> Function(String code) onJoin;
 
   const _JoinMatchDialog({required this.l10n, required this.onJoin});
 
@@ -388,8 +392,8 @@ class _JoinMatchDialogState extends State<_JoinMatchDialog> {
                   if (_ctrl.text.trim().length < 6) return;
                   setState(() => _loading = true);
                   try {
-                    await widget.onJoin(_ctrl.text.trim());
-                    if (mounted) Navigator.pop(context);
+                    final session = await widget.onJoin(_ctrl.text.trim());
+                    if (mounted) Navigator.pop(context, session);
                   } catch (e) {
                     if (mounted) {
                       setState(() => _loading = false);
