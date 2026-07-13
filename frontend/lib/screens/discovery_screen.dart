@@ -18,11 +18,26 @@ class DiscoveryScreen extends StatefulWidget {
 
 class _DiscoveryScreenState extends State<DiscoveryScreen> {
   late Future<Map<String, dynamic>> _discoveryData;
+  Locale? _lastLocale;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  // Le contenu (titres, résumés...) est localisé côté back selon la langue
+  // du compte, pas rechargé automatiquement : sans ça, changer de langue
+  // laisserait cet écran affiché dans l'ancienne (FR) tant qu'on ne le
+  // recrée pas — il reste vivant dans l'IndexedStack de MainNavigation.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Provider.of<LocaleProvider>(context).locale;
+    if (_lastLocale != null && _lastLocale != locale) {
+      setState(_loadData);
+    }
+    _lastLocale = locale;
   }
 
   void _loadData() {
@@ -352,10 +367,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       onTap: () async {
         Navigator.of(context).pop();
         if (isSelected) return;
-        localeProvider.setLocale(locale);
         // Le contenu (titres, synopsis…) est servi dans la langue stockée
-        // côté backend sur l'utilisateur : il faut la synchroniser avec la
-        // langue de l'UI, sinon les films restent affichés dans l'ancienne.
+        // côté backend sur l'utilisateur : on synchronise AVANT de changer
+        // la locale locale, sinon le rechargement déclenché par setLocale
+        // (cf. didChangeDependencies) pourrait partir avant que le backend
+        // n'ait persisté la nouvelle langue et re-fetcher dans l'ancienne.
         try {
           await ProfileService().updateMe(
             language: locale.languageCode == 'en' ? 'en-US' : 'fr-FR',
@@ -364,7 +380,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
           // Best-effort : la langue de l'UI change même si la sync échoue.
         }
         if (mounted) {
-          setState(_loadData);
+          localeProvider.setLocale(locale);
         }
       },
       child: Padding(

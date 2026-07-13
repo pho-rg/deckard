@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../providers/locale_provider.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'main_navigation.dart';
@@ -61,6 +63,12 @@ class _LoginScreenState extends State<LoginScreen> {
               _passwordCtrl.text,
             );
       if (mounted) {
+        // Synchronise l'UI sur la langue du compte (cf. AuthGate au
+        // démarrage pour la même logique côté restauration de session).
+        context.read<LocaleProvider>().setLocale(
+              LocaleProvider.localeFromLanguageTag(
+                  AuthService.currentUserLanguage),
+            );
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(

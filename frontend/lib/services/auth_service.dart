@@ -13,6 +13,14 @@ class AuthService {
   /// Sert notamment à savoir si l'on est l'hôte d'un match.
   static String? currentUserId;
 
+  /// Langue du compte connecté (ex. "en-US", "fr-FR"), remplie au login /
+  /// restauration de session. Le compte a `fr-FR` par défaut côté serveur
+  /// (voir models/user.py) indépendamment de la langue de l'UI — sans
+  /// synchroniser LocaleProvider dessus au démarrage, les contenus renvoyés
+  /// par le back (titres, synopsis…) restent dans cette langue par défaut
+  /// même quand l'UI affiche l'anglais.
+  static String? currentUserLanguage;
+
   /// Connexion email + mot de passe.
   /// POST /auth/login → { access_token, refresh_token, token_type }
   /// Retourne `true` si l'utilisateur doit passer par l'onboarding
@@ -47,7 +55,10 @@ class AuthService {
   /// aucun favori. GET /users/me → { ..., needs_onboarding }.
   static Future<bool> fetchNeedsOnboarding() async {
     final me = await _api.get('/users/me');
-    if (me is Map) currentUserId = me['id'] as String?;
+    if (me is Map) {
+      currentUserId = me['id'] as String?;
+      currentUserLanguage = me['language'] as String?;
+    }
     return (me is Map && me['needs_onboarding'] == true);
   }
 
@@ -109,7 +120,10 @@ class AuthService {
     ApiService.token = token;
     try {
       final me = await _api.get('/users/me'); // valide réellement le token
-      if (me is Map) currentUserId = me['id'] as String?;
+      if (me is Map) {
+        currentUserId = me['id'] as String?;
+        currentUserLanguage = me['language'] as String?;
+      }
       return true;
     } on ApiException catch (e) {
       if (e.statusCode == 401) {

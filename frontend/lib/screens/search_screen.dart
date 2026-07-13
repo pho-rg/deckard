@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../providers/locale_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/movie.dart';
 import '../services/movie_service.dart';
@@ -26,6 +28,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   bool _isSearching = false;
   bool _hasSearched = false;
   Timer? _debounce;
+  Locale? _lastLocale;
 
   @override
   void initState() {
@@ -33,6 +36,23 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     _tabController = TabController(length: 2, vsync: this);
     _loadSearchHistory();
     _loadSuggestions();
+  }
+
+  // Le contenu est localisé côté back selon la langue du compte : sans ça,
+  // les suggestions (et les résultats déjà affichés) resteraient dans
+  // l'ancienne langue après un changement — cet écran reste vivant dans
+  // l'IndexedStack de MainNavigation, jamais recréé.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Provider.of<LocaleProvider>(context).locale;
+    if (_lastLocale != null && _lastLocale != locale) {
+      _loadSuggestions();
+      if (_hasSearched && _searchController.text.isNotEmpty) {
+        _performSearch(_searchController.text, saveToHistory: false);
+      }
+    }
+    _lastLocale = locale;
   }
 
   Future<void> _loadSearchHistory() async {
