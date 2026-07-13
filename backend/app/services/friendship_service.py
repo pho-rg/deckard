@@ -56,6 +56,28 @@ class FriendshipService:
             self.db.refresh(existing)
             return existing
 
+        # No row in this direction — check the other direction too, so we
+        # don't create a second, inconsistent row for the same pair (e.g.
+        # target already friended sender first).
+        reverse = self.repo.get(target.id, sender.id)
+        if reverse:
+            if reverse.status == FriendshipStatus.accepted:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="User is already your friend",
+                )
+            if reverse.status == FriendshipStatus.pending:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="This user already sent you a friend request",
+                )
+            if reverse.status == FriendshipStatus.blocked:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Cannot send a request to this user",
+                )
+            # reverse rejected: no conflict, a fresh row in this direction is fine
+
         return self.repo.create(sender.id, target.id)
 
     def accept_request(

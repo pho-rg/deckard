@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, or_, select, union_all
 from sqlalchemy.orm import Session
 
 from app.models.friendship import Friendship, FriendshipStatus
@@ -19,28 +19,47 @@ class FriendshipRepository:
             )
         )
 
-    def is_accepted(self, requester_id: uuid.UUID, addressee_id: uuid.UUID) -> bool:
-        # True iff requester has addressee as an accepted friend (asymmetric)
+    def is_accepted(self, user_a: uuid.UUID, user_b: uuid.UUID) -> bool:
+        # Accepted friendship is mutual regardless of who originally requested it.
         return self.db.scalar(
-            select(Friendship.requester_id)
+            select(Friendship.status)
             .where(
-                Friendship.requester_id == requester_id,
-                Friendship.addressee_id == addressee_id,
+                or_(
+                    and_(
+                        Friendship.requester_id == user_a,
+                        Friendship.addressee_id == user_b,
+                    ),
+                    and_(
+                        Friendship.requester_id == user_b,
+                        Friendship.addressee_id == user_a,
+                    ),
+                ),
                 Friendship.status == FriendshipStatus.accepted,
             )
             .limit(1)
         ) is not None
 
+    def friend_ids_subquery(self, user_id: uuid.UUID):
+        # A friendship row only records who originally sent the request, but
+        # once accepted the relationship is mutual — resolve the other side
+        # from either column.
+        return union_all(
+            select(Friendship.addressee_id.label("friend_id")).where(
+                Friendship.requester_id == user_id,
+                Friendship.status == FriendshipStatus.accepted,
+            ),
+            select(Friendship.requester_id.label("friend_id")).where(
+                Friendship.addressee_id == user_id,
+                Friendship.status == FriendshipStatus.accepted,
+            ),
+        ).subquery()
+
     def list_friends(self, user_id: uuid.UUID) -> list[User]:
-        # Users that user_id befriended (i.e. requester=user_id, accepted)
+        friend_ids = self.friend_ids_subquery(user_id)
         return list(
             self.db.scalars(
                 select(User)
-                .join(Friendship, Friendship.addressee_id == User.id)
-                .where(
-                    Friendship.requester_id == user_id,
-                    Friendship.status == FriendshipStatus.accepted,
-                )
+                .join(friend_ids, friend_ids.c.friend_id == User.id)
                 .order_by(User.username)
             )
         )

@@ -6,12 +6,12 @@ from sqlalchemy import func, literal, select, union_all
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.favorite import Favorite
-from app.models.friendship import Friendship, FriendshipStatus
 from app.models.genre import Genre
 from app.models.movie import Movie
 from app.models.rating import Rating
 from app.models.watched import WatchedItem
 from app.models.watchlist import WatchlistItem
+from app.repositories.friendship_repository import FriendshipRepository
 
 # Eager-load everything `presenter.movie_card` needs to localize a card.
 _CARD_OPTIONS = (
@@ -61,14 +61,9 @@ class RecommendationRepository:
         return list(self.db.scalars(stmt))
 
     def from_friends(self, user_id: uuid.UUID, *, limit: int = 10) -> list[Movie]:
-        friend_ids = (
-            select(Friendship.addressee_id)
-            .where(
-                Friendship.requester_id == user_id,
-                Friendship.status == FriendshipStatus.accepted,
-            )
-            .scalar_subquery()
-        )
+        friend_ids = select(
+            FriendshipRepository(self.db).friend_ids_subquery(user_id).c.friend_id
+        ).scalar_subquery()
 
         # Weighted signals from friends.
         signals = union_all(
