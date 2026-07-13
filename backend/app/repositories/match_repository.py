@@ -178,6 +178,33 @@ class MatchRepository:
         )
         self.db.commit()
 
+    def set_host(self, session_id: uuid.UUID, host_id: uuid.UUID) -> None:
+        self.db.execute(
+            update(MatchSession)
+            .where(MatchSession.id == session_id)
+            .values(host_id=host_id)
+        )
+        self.db.commit()
+
+    def set_choices_received(self, session_id: uuid.UUID, value: int) -> None:
+        self.db.execute(
+            update(MatchSession)
+            .where(MatchSession.id == session_id)
+            .values(choices_received=value)
+        )
+        self.db.commit()
+
+    def remove_participant(
+        self, session_id: uuid.UUID, user_id: uuid.UUID
+    ) -> None:
+        self.db.execute(
+            delete(MatchParticipant).where(
+                MatchParticipant.session_id == session_id,
+                MatchParticipant.user_id == user_id,
+            )
+        )
+        self.db.commit()
+
     def delete(self, session_id: uuid.UUID) -> None:
         self.db.execute(
             delete(MatchSession).where(MatchSession.id == session_id)

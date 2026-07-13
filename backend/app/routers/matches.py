@@ -70,6 +70,15 @@ def submit_choices(
     )
 
 
+@router.post("/{session_id}/leave", response_model=MatchSessionOut | None)
+def leave_match(
+    session_id: uuid.UUID, db: DbSession, current_user: CurrentUser
+):
+    # Removes the caller from the session (lobby, voting or finished). Returns
+    # null if that was the last participant (the session gets deleted).
+    return MatchService(db).leave(current_user, session_id)
+
+
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_match(
     session_id: uuid.UUID, db: DbSession, current_user: CurrentUser

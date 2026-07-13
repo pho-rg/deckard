@@ -126,6 +126,18 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
     );
   }
 
+  /// Quitte le vote en cours : prévient le back pour que les autres
+  /// participants ne restent pas bloqués à attendre le choix de quelqu'un qui
+  /// est parti (cf. FriendService.leaveMatch). Best-effort.
+  Future<void> _leaveAndPop() async {
+    try {
+      await widget.service.leaveMatch(widget.session.id);
+    } catch (_) {
+      // best-effort
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -149,7 +161,13 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
       );
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithPop: (didPop, result) {
+        if (didPop) return;
+        _leaveAndPop();
+      },
+      child: Scaffold(
       body: SafeArea(
         child: Column(
           children: [
@@ -160,7 +178,7 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
                 children: [
                   IconButton(
                     icon: const Icon(Icons.close, color: AppTheme.textDim),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _leaveAndPop,
                   ),
                   Expanded(
                     child: Text(
@@ -232,6 +250,7 @@ class _MovieSwipeScreenState extends State<MovieSwipeScreen>
             ),
           ],
         ),
+      ),
       ),
     );
   }

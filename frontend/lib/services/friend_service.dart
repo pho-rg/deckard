@@ -99,4 +99,12 @@ class FriendService {
   Future<void> cleanupMatches() async {
     await _api.post('/matches/cleanup', {});
   }
+
+  /// POST /matches/{id}/leave — retire l'appelant de la session (lobby, vote
+  /// ou résultat). Best-effort : appelée quand l'utilisateur quitte l'écran
+  /// d'attente ou de vote, pour que les autres participants ne restent pas
+  /// bloqués à l'attendre.
+  Future<void> leaveMatch(String sessionId) async {
+    await _api.post('/matches/$sessionId/leave', {});
+  }
 }

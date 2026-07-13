@@ -101,6 +101,40 @@ class MatchService:
 
         return self._present(self.repo.get(session_id), user)
 
+    def leave(
+        self, user: User, session_id: uuid.UUID
+    ) -> MatchSessionOut | None:
+        """Remove the caller from the session, at any phase (lobby, voting,
+        finished). Returns None if that emptied the session (it gets deleted
+        entirely) — otherwise the updated session for the remaining group.
+        """
+        session = self._require_participant(session_id, user)
+        remaining = [p for p in session.participants if p.user_id != user.id]
+
+        if not remaining:
+            # Last person out — nothing left to keep a session for.
+            self.repo.delete(session_id)
+            return None
+
+        self.repo.remove_participant(session_id, user.id)
+
+        if session.host_id == user.id:
+            # Host left — promote whoever has been waiting the longest.
+            new_host = min(remaining, key=lambda p: p.joined_at)
+            self.repo.set_host(session_id, new_host.user_id)
+
+        if session.status == MatchStatus.in_progress:
+            # A departure shrinks the group: re-evaluate "everyone voted" so
+            # the remaining participants aren't stuck waiting on someone
+            # who's gone (and don't leave `choices_received` stale/wrong).
+            submitted = sum(1 for p in remaining if p.has_submitted)
+            self.repo.set_choices_received(session_id, submitted)
+            if submitted >= len(remaining):
+                self.repo.set_status(session_id, MatchStatus.finished)
+
+        updated = self.repo.get(session_id)
+        return self._present(updated, user) if updated is not None else None
+
     def delete(self, user: User, session_id: uuid.UUID) -> None:
         session = self._require_session(session_id)
         self._require_host(session, user)

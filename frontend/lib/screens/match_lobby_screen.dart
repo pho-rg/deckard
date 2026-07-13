@@ -68,6 +68,18 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
     );
   }
 
+  /// Quitte la salle d'attente : prévient le back pour que les autres ne
+  /// gardent pas indéfiniment un participant qui est parti (host réattribué
+  /// si besoin). Best-effort — on quitte l'écran même si l'appel échoue.
+  Future<void> _leaveAndPop() async {
+    try {
+      await widget.service.leaveMatch(_session.id);
+    } catch (_) {
+      // best-effort
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
+
   Future<void> _go(AppLocalizations l10n) async {
     setState(() => _starting = true);
     try {
@@ -101,7 +113,13 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithPop: (didPop, result) {
+        if (didPop) return;
+        _leaveAndPop();
+      },
+      child: Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
         title: Text(l10n.match.toUpperCase()),
@@ -347,6 +365,7 @@ class _MatchLobbyScreenState extends State<MatchLobbyScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
