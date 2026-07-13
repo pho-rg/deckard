@@ -7,7 +7,9 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/friend_models.dart';
 import '../models/profile_models.dart';
 import '../services/friend_service.dart';
+import '../services/movie_service.dart';
 import '../theme/app_theme.dart';
+import 'movie_detail_screen.dart';
 import 'movie_swipe_screen.dart';
 
 class MatchResultScreen extends StatefulWidget {
@@ -189,72 +191,86 @@ class _MatchFoundView extends StatelessWidget {
                 mainAxisSpacing: 12,
               ),
               itemCount: movies.length,
-              itemBuilder: (_, i) {
+              itemBuilder: (ctx, i) {
                 final m = movies[i];
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (m.posterUrl != null)
-                        CachedNetworkImage(
-                          imageUrl: m.posterUrl!,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) =>
-                              Container(color: Colors.grey[850]),
-                          errorWidget: (_, __, ___) =>
-                              Container(color: Colors.grey[850]),
-                        )
-                      else
-                        Container(
-                          color: Colors.grey[850],
-                          child: const Icon(Icons.movie,
-                              color: Colors.white24, size: 48),
-                        ),
-                      // Title gradient overlay
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.85),
-                                Colors.transparent,
-                              ],
+                return GestureDetector(
+                  onTap: () async {
+                    try {
+                      final full = await MovieService.getMovieDetail(m.tmdbId);
+                      if (ctx.mounted) {
+                        Navigator.push(
+                          ctx,
+                          MaterialPageRoute(
+                              builder: (_) => MovieDetailScreen(movie: full)),
+                        );
+                      }
+                    } catch (_) {/* film introuvable, on ignore */}
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (m.posterUrl != null)
+                          CachedNetworkImage(
+                            imageUrl: m.posterUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) =>
+                                Container(color: Colors.grey[850]),
+                            errorWidget: (_, __, ___) =>
+                                Container(color: Colors.grey[850]),
+                          )
+                        else
+                          Container(
+                            color: Colors.grey[850],
+                            child: const Icon(Icons.movie,
+                                color: Colors.white24, size: 48),
+                          ),
+                        // Title gradient overlay
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.85),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                            child: Text(
+                              m.title,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          child: Text(
-                            m.title,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                        ),
+                        // Heart badge
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            child: const Icon(Icons.favorite,
+                                color: AppTheme.secondaryPurple, size: 14),
                           ),
                         ),
-                      ),
-                      // Heart badge
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.favorite,
-                              color: AppTheme.secondaryPurple, size: 14),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },
