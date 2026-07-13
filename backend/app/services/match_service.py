@@ -92,11 +92,11 @@ class MatchService:
         to_eliminate = [i for i in rejected_ids if i in valid_ids]
         self.repo.eliminate_movies(session_id, to_eliminate)
         self.repo.mark_submitted(session_id, user.id)
-        self.repo.increment_choices(session_id)
+        new_count = self.repo.increment_choices(session_id)
 
         # Everyone has voted → finish the session.
         total = len(session.participants)
-        if session.choices_received + 1 >= total:
+        if new_count >= total:
             self.repo.set_status(session_id, MatchStatus.finished)
 
         return self._present(self.repo.get(session_id), user)

@@ -153,13 +153,20 @@ class MatchRepository:
         )
         self.db.commit()
 
-    def increment_choices(self, session_id: uuid.UUID) -> None:
-        self.db.execute(
+    def increment_choices(self, session_id: uuid.UUID) -> int:
+        # Returns the post-increment count straight from the DB — the caller
+        # needs the authoritative value to decide whether everyone has voted,
+        # and SQLAlchemy's implicit session-sync on bulk updates can already
+        # have mutated any in-memory MatchSession.choices_received by the time
+        # this returns (would otherwise double-count).
+        new_value = self.db.scalar(
             update(MatchSession)
             .where(MatchSession.id == session_id)
             .values(choices_received=MatchSession.choices_received + 1)
+            .returning(MatchSession.choices_received)
         )
         self.db.commit()
+        return new_value
 
     def set_status(
         self, session_id: uuid.UUID, status: MatchStatus
