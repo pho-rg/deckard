@@ -131,8 +131,10 @@ class FriendsScreenState extends State<FriendsScreen> {
             ),
 
           // ── Popular with friends ────────────────────────────────────────
-          _SectionHeader(l10n.popularWithFriends),
-          _PopularGrid(movies: data.popular),
+          if (data.popular.isNotEmpty) ...[
+            _SectionHeader(l10n.popularWithFriends),
+            _PopularGrid(movies: data.popular),
+          ],
 
           // ── Friends list ────────────────────────────────────────────────
           _SectionHeader(l10n.myFriends),
