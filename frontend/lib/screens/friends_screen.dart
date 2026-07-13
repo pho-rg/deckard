@@ -577,49 +577,52 @@ class _PopularGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenW = MediaQuery.of(context).size.width;
-    final cardW = (screenW - 48) / 2; // 2 columns, 16+8+8+16 padding
-    final cardH = cardW / (2 / 3);
+    // Même format que les rangées horizontales de l'écran d'accueil
+    // (cf. DiscoveryScreen._buildHorizontalSection) : affiches plus petites,
+    // défilement horizontal plutôt qu'une grille 2 colonnes pleine largeur.
+    final cardW = MediaQuery.of(context).size.width * 0.22;
+    const aspectRatio = 2 / 3;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 2 / 3,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-        ),
-        itemCount: movies.length.clamp(0, 4),
+    return SizedBox(
+      height: cardW / aspectRatio,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: movies.length,
         itemBuilder: (ctx, i) {
           final m = movies[i];
-          return GestureDetector(
-            onTap: () async {
-              try {
-                final full = await MovieService.getMovieDetail(m.tmdbId);
-                if (ctx.mounted) {
-                  Navigator.push(
-                    ctx,
-                    MaterialPageRoute(
-                        builder: (_) => MovieDetailScreen(movie: full)),
-                  );
-                }
-              } catch (_) {/* film introuvable, on ignore */}
-            },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: m.posterUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: m.posterUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) =>
-                          Container(color: Colors.grey[850]),
-                      errorWidget: (_, __, ___) =>
-                          Container(color: Colors.grey[850]),
-                    )
-                  : Container(color: Colors.grey[850]),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: GestureDetector(
+              onTap: () async {
+                try {
+                  final full = await MovieService.getMovieDetail(m.tmdbId);
+                  if (ctx.mounted) {
+                    Navigator.push(
+                      ctx,
+                      MaterialPageRoute(
+                          builder: (_) => MovieDetailScreen(movie: full)),
+                    );
+                  }
+                } catch (_) {/* film introuvable, on ignore */}
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: cardW,
+                  height: cardW / aspectRatio,
+                  child: m.posterUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: m.posterUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) =>
+                              Container(color: Colors.grey[850]),
+                          errorWidget: (_, __, ___) =>
+                              Container(color: Colors.grey[850]),
+                        )
+                      : Container(color: Colors.grey[850]),
+                ),
+              ),
             ),
           );
         },
