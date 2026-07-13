@@ -299,7 +299,7 @@ abstract class AppLocalizations {
   /// No description provided for @ratings.
   ///
   /// In en, this message translates to:
-  /// **'RATINGS'**
+  /// **'Ratings'**
   String get ratings;
 
   /// No description provided for @logYourWatch.

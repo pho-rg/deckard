@@ -112,7 +112,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trailer => 'TRAILER';
 
   @override
-  String get ratings => 'RATINGS';
+  String get ratings => 'Ratings';
 
   @override
   String get logYourWatch => 'Log this film';

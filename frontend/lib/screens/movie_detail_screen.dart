@@ -374,7 +374,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with SingleTicker
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.ratings,
+            l10n.ratings.toUpperCase(),
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white38, letterSpacing: 1.2),
           ),
           const SizedBox(height: 16),
