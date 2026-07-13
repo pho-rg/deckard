@@ -19,10 +19,10 @@ class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
 
   @override
-  State<FriendsScreen> createState() => _FriendsScreenState();
+  State<FriendsScreen> createState() => FriendsScreenState();
 }
 
-class _FriendsScreenState extends State<FriendsScreen> {
+class FriendsScreenState extends State<FriendsScreen> {
   final _service = FriendService();
   late Future<_FriendsData> _dataFuture;
   Timer? _cleanupTimer;
@@ -61,6 +61,16 @@ class _FriendsScreenState extends State<FriendsScreen> {
   void _refresh() => setState(() {
         _dataFuture = _load();
       });
+
+  /// Recharge amis/demandes/popular depuis le back. `MainNavigation` garde
+  /// cet écran vivant dans un `IndexedStack` (jamais recréé), donc
+  /// `initState` ne suffit pas : une demande d'ami reçue pendant qu'on est
+  /// sur un autre onglet ne serait sinon jamais reflétée ici sans refresh
+  /// manuel.
+  Future<void> reload() async {
+    _refresh();
+    await _dataFuture;
+  }
 
   @override
   Widget build(BuildContext context) {

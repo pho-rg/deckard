@@ -22,6 +22,7 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 2;
 
   final _watchlistKey = GlobalKey<WatchlistScreenState>();
+  final _friendsKey = GlobalKey<FriendsScreenState>();
   final _profileKey = GlobalKey<MyProfileScreenState>();
 
   void setTab(int index) {
@@ -36,6 +37,7 @@ class _MainNavigationState extends State<MainNavigation> {
   // on force un rechargement à chaque fois que l'utilisateur revient.
   void _refreshOnTabSwitch(int index) {
     if (index == 0) _watchlistKey.currentState?.reload();
+    if (index == 3) _friendsKey.currentState?.reload();
     if (index == 4) _profileKey.currentState?.reload();
   }
 
@@ -44,7 +46,7 @@ class _MainNavigationState extends State<MainNavigation> {
     WatchlistScreen(key: _watchlistKey),
     const SearchScreen(),
     const DiscoveryScreen(),
-    const FriendsScreen(),
+    FriendsScreen(key: _friendsKey),
     MyProfileScreen(key: _profileKey),
   ];
 
