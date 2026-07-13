@@ -41,6 +41,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           MobileScanner(
             controller: _controller,
             onDetect: _onDetect,
+            // Le widget d'erreur par défaut de mobile_scanner masque le vrai
+            // code d'erreur hors kDebugMode (toujours "An unexpected error
+            // occurred" en release) — on l'affiche nous-mêmes pour pouvoir
+            // diagnostiquer (permission refusée, pas de caméra, etc.).
+            errorBuilder: (context, error, child) =>
+                _ScannerError(error: error, onRetry: () => _controller.start()),
           ),
 
           // ── Dark overlay with cut-out ────────────────────────────────────────
@@ -102,6 +108,48 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Camera error state (permission refusée, pas de caméra, etc.)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ScannerError extends StatelessWidget {
+  final MobileScannerException error;
+  final VoidCallback onRetry;
+
+  const _ScannerError({required this.error, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white54, size: 40),
+              const SizedBox(height: 16),
+              Text(
+                error.errorCode.message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+              ),
+              const SizedBox(height: 20),
+              OutlinedButton(
+                onPressed: onRetry,
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
+                child: Text(l10n.retry),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
