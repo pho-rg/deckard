@@ -144,8 +144,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   // ── Add friend bottom sheet ─────────────────────────────────────────────────
 
-  void _showAddFriendSheet(BuildContext context, AppLocalizations l10n) {
-    showModalBottomSheet(
+  Future<void> _showAddFriendSheet(
+      BuildContext context, AppLocalizations l10n) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppTheme.surface,
@@ -154,6 +155,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
       ),
       builder: (_) => _AddFriendSheet(l10n: l10n, service: _service),
     );
+    // La feuille peut se fermer après un envoi de demande réussi (ou
+    // simplement être annulée) — on recharge dans tous les cas pour rester
+    // cohérent, sans avoir besoin d'un refresh manuel de l'écran.
+    _refresh();
   }
 }
 
